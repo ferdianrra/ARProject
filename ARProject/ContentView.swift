@@ -9,10 +9,16 @@ import SwiftUI
 import RealityKit
 
 struct ContentView : View {
-
+    @StateObject private var manager = ARManager()
+    @State private var scanPulse = false
+    let animalModels = ["cat", "calf", "merak", "zebra"]
+    
     var body: some View {
         RealityView { content in
-
+            let camAnchor = AnchorEntity(.camera)
+            content.add(camAnchor)
+            manager.cameraAnchor = camAnchor
+            
             // Create a cube model
             let model = Entity()
             let mesh = MeshResource.generateBox(size: 0.1, cornerRadius: 0.005)
