@@ -4,10 +4,10 @@
 //
 //  Created by Nadia Putri Natali Lubis on 14/07/26.
 //
-
-//
-//  HandZoneOverlayView.swift
-//  ARProject
+//  Draws two diagonal yellow "arms" that visually converge at the center of
+//  the screen, forming a V-shape hinting where the player should aim to pick
+//  up / feed. Pure UIKit drawing (CALayer transforms), no AR content — this
+//  view just overlays the AR camera feed. No unused code found in this file.
 //
 
 import UIKit
@@ -16,7 +16,10 @@ class HandZoneOverlayView: UIView {
     private let leftHand = UIView()
     private let rightHand = UIView()
 
-    /// Area target di tengah layar, tempat makanan harus diarahkan.
+    /// The target zone at the center of the screen where food needs to be
+    /// aimed. `ViewController+Feeding.swift` checks whether a food node's
+    /// projected 2D screen position falls inside this rect to decide whether
+    /// the player is "aiming correctly."
     var zoneRect: CGRect {
         let size: CGFloat = 180
         return CGRect(x: bounds.midX - size / 2, y: bounds.midY - size / 2, width: size, height: size)
@@ -29,6 +32,8 @@ class HandZoneOverlayView: UIView {
             $0.layer.cornerRadius = 14
             addSubview($0)
         }
+        // This overlay is purely visual — don't let it intercept touches
+        // meant for the AR view underneath (e.g. the tap-to-place gesture).
         isUserInteractionEnabled = false
     }
 
@@ -41,7 +46,7 @@ class HandZoneOverlayView: UIView {
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
         let thickness: CGFloat = max(36, bounds.width * 0.05)
 
-        // Ujung lengan ditarik hampir ke pojok bawah layar
+        // Each "arm" stretches from screen center out to near a bottom corner.
         let bottomLeft = CGPoint(x: bounds.minX + 20, y: bounds.maxY - 40)
         let bottomRight = CGPoint(x: bounds.maxX - 20, y: bounds.maxY - 40)
 
@@ -49,9 +54,17 @@ class HandZoneOverlayView: UIView {
         configureArm(rightHand, from: center, to: bottomRight, thickness: thickness)
     }
 
-    /// Menempatkan satu "lengan" agar salah satu ujungnya persis di `pivot` (titik tengah layar),
-    /// lalu memanjang keluar ke arah `farPoint`. Ini yang bikin titik temu kedua lengan selalu
-    /// pas di tengah layar, berapa pun ukuran layarnya.
+    /// Positions one "arm" so that one end sits exactly at `pivot` (screen
+    /// center), then stretches out toward `farPoint`.
+    ///
+    /// The trick: setting `anchorPoint` to (0, 0.5) makes the LEFT-CENTER
+    /// edge of the layer the rotation/position anchor, instead of the
+    /// default center. That lets us place that anchor exactly at `pivot` via
+    /// `layer.position`, then rotate the whole bar around it — which is what
+    /// guarantees both arms always meet exactly at screen center, regardless
+    /// of screen size. `atan2(dy, dx)` gives the angle from pivot to
+    /// farPoint, and `sqrt(dx*dx + dy*dy)` (Pythagorean theorem) gives the
+    /// straight-line distance, which becomes the bar's length.
     private func configureArm(_ arm: UIView, from pivot: CGPoint, to farPoint: CGPoint, thickness: CGFloat) {
         let dx = farPoint.x - pivot.x
         let dy = farPoint.y - pivot.y
@@ -59,8 +72,8 @@ class HandZoneOverlayView: UIView {
         let angle = atan2(dy, dx)
 
         arm.bounds = CGRect(x: 0, y: 0, width: length, height: thickness)
-        arm.layer.anchorPoint = CGPoint(x: 0, y: 0.5) // pivot di ujung kiri bar
-        arm.layer.position = pivot                     // taruh pivot itu tepat di titik tengah layar
+        arm.layer.anchorPoint = CGPoint(x: 0, y: 0.5) // anchor at the bar's left edge, vertically centered
+        arm.layer.position = pivot                     // pin that anchor to screen center
         arm.layer.transform = CATransform3DMakeRotation(angle, 0, 0, 1)
     }
 }

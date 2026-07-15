@@ -4,6 +4,11 @@
 //
 //  Created by Nadia Putri Natali Lubis on 14/07/26.
 //
+//  Core feeding mini-game logic: pick up food when it's held over the
+//  "hand zone" long enough, then carry it to the animal and feed it.
+//  Designed to work without any buttons, using dwell-time detection, so
+//  young users don't need precise tapping.
+//
 
 import Foundation
 import UIKit
@@ -11,13 +16,17 @@ import ARKit
 import SceneKit
 
 extension ViewController {
-    
+
+    /// Simple state machine: either the player has nothing in hand (`idle`),
+    /// or they're carrying a specific food node (`carryingFood`).
     enum FeedingState {
         case idle
         case carryingFood(SCNNode)
     }
-    
-    /// Dipanggil tiap frame dari renderer(_:updateAtTime:)
+
+    /// Called ~10x/sec from `renderer(_:updateAtTime:)`. Which check runs
+    /// depends on the current state — you can't try to feed the animal if
+    /// you haven't picked up food yet.
     func checkFeedingProgress() {
         switch feedingState {
         case .idle:
@@ -26,52 +35,59 @@ extension ViewController {
             checkFeedZone()
         }
     }
-    
-    // MARK: - Ambil makanan (arahkan food ke celah tangan)
-    
+
+    // MARK: - Pick up food (aim food at the hand zone)
+
+    /// Looks for a food node at the center of the screen, checks whether its
+    /// on-screen (2D) projection falls inside the hand-zone rectangle, and if
+    /// it's stayed there long enough, triggers the pick-up.
     private func checkPickUpZone() {
         guard let foodNode = sceneView.hitTestVirtualNode(named: "food") else {
             pickUpDwellTimer = 0
             return
         }
-        
-        // Proyeksikan posisi 3D makanan ke koordinat layar 2D
+
+        /// Project the food's 3D world position down to a 2D point on screen,
+        /// so we can compare it against the (2D, screen-space) hand zone rect.
         let screenPoint = sceneView.projectPoint(foodNode.worldPosition)
         let point2D = CGPoint(x: CGFloat(screenPoint.x), y: CGFloat(screenPoint.y))
-        
+
         guard handZoneOverlay.zoneRect.contains(point2D) else {
             pickUpDwellTimer = 0
             return
         }
-        
-        // Sudah di zona -> akumulasi dwell time
+
+        /// Already inside the zone -> accumulate dwell time.
         pickUpDwellTimer += feedingCheckInterval
         if pickUpDwellTimer >= dwellThreshold {
             performPickUp(foodNode)
             pickUpDwellTimer = 0
         }
     }
-    
+
     private func performPickUp(_ foodNode: SCNNode) {
+        /// Detach from AR world tracking — once "held", the food should move with the camera, not stay pinned to a spot in the real world.
         if let virtualFood = foodNode as? VirtualObject, let anchor = virtualFood.anchor {
             session.remove(anchor: anchor)
             virtualFood.anchor = nil
         }
         foodNode.removeFromParentNode()
-        
+
+        /// Re-parent to the camera node (`pointOfView`) so the food stays centered on screen, roughly where the hand-zone graphics converge, regardless of how the user moves their phone.
         if let pov = sceneView.pointOfView {
             foodNode.transform = SCNMatrix4Identity
-            foodNode.position = SCNVector3(0, -0.05, -0.35) // sedikit ke bawah, ~35cm di depan kamera
+            foodNode.position = SCNVector3(0, -0.05, -0.35) // slightly below, ~35cm in front of camera
             pov.addChildNode(foodNode)
         }
-        
+
         feedingState = .carryingFood(foodNode)
-        statusLabel.text = "Makanan diambil! Arahkan ke hewan 🐾"
+        statusLabel.text = "Makanan diambil! Arahkan ke hewan"
         flashStatus(success: true)
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
-    
-    // ViewController+Feeding.swift
+
+    /// Briefly flashes the status label green/red for feedback, then fades
+    /// back to its normal color.
     private func flashStatus(success: Bool) {
         UIView.animate(withDuration: 0.15) {
             self.statusLabel.backgroundColor = (success ? UIColor.systemGreen : UIColor.systemRed).withAlphaComponent(0.85)
@@ -81,50 +97,52 @@ extension ViewController {
             }
         }
     }
-    
-    // MARK: - Kasih makan (arahkan kamera ke animal)
-    
+
+    // MARK: - Feed the animal (aim the camera at the animal)
+
     private func checkFeedZone() {
         guard sceneView.hitTestVirtualNode(named: "animal") != nil else {
             feedDwellTimer = 0
             return
         }
-        
+
         feedDwellTimer += feedingCheckInterval
         if feedDwellTimer >= dwellThreshold {
             performFeed()
             feedDwellTimer = 0
         }
     }
-    
+
     private func performFeed() {
         guard case .carryingFood(let food) = feedingState else { return }
-        
-        // TODO: ganti logic asli (misal preferensi makanan tertentu)
+
+        // TODO: replace this coin-flip with real logic (e.g. specific foods
+        // the animal likes/dislikes) once that gameplay rule is decided.
         let animalAccepts = Bool.random()
-        
+
         if animalAccepts {
             statusLabel.text = "Hewan suka makanannya! 🐾"
             food.removeFromParentNode()
-//            allSpawnedObjects.removeAll { $0 === food }
         } else {
             statusLabel.text = "Hewan menolak makanannya 😾"
             flingAwayAndRemove(food)
         }
-        
+
         flashStatus(success: animalAccepts)
         UINotificationFeedbackGenerator().notificationOccurred(animalAccepts ? .success : .warning)
         feedingState = .idle
     }
-    
-    /// Melempar makanan menjauh dari kamera (efek "ditolak/mental") lalu menghapusnya dari scene.
+
+    /// Flings the rejected food away from the camera (a little "bounced off" effect) and fades it out, then removes it from the scene.
+    ///
+    /// Because the food is currently parented to the camera (`pointOfView`), `SCNAction.move(by:)` here moves it in the camera's LOCAL coordinate space, where +Z points toward the viewer/away from what the camera is looking at. That's why moving by a positive Z reads as "away from the animal" instead of "toward" it — this was the fling-direction bug you fixed.
     private func flingAwayAndRemove(_ food: SCNNode) {
-        // Pilih sisi kiri atau kanan secara acak, dengan jarak yang jelas terlihat (samping)
+        /// Randomize left/right so rejected food doesn't always fly the same way.
         let sideDirection: Float = Bool.random() ? 1 : -1
         let sideDistance: Float = Float.random(in: 0.4...0.6) * sideDirection
-        
-        // Z POSITIF (bukan negatif) = mundur menjauhi arah pandang kamera = menjauh dari animal.
-        // Y sedikit naik buat efek "kepental", bukan cuma geser datar.
+
+        /// +Z = backward relative to the camera = away from the animal.
+        /// A small +Y adds a bit of "pop up" so it reads as bounced, not just slid.
         let flingAction = SCNAction.move(by: SCNVector3(sideDistance, 0.2, 0.3), duration: 0.4)
         flingAction.timingMode = .easeOut
         let fadeAction = SCNAction.fadeOut(duration: 0.4)
@@ -132,11 +150,10 @@ extension ViewController {
         food.runAction(group) {
             food.removeFromParentNode()
         }
-
     }
-        
+
     // MARK: - Actions
-    
+
     @objc func didTapSpawnFood(_ sender: UIButton) {
         guard sceneView.scene.rootNode.childNode(withName: "animal", recursively: true) != nil else {
             statusLabel.text = "Spawn hewan dulu sebelum kasih makanan"
@@ -144,64 +161,9 @@ extension ViewController {
         }
         sceneView.spawnFoodAroundAnimal()
         statusLabel.text = "Makanan muncul di sekitar hewan"
-        
+
+        /// The hand zone graphic is only relevant once there's food to pick up — keep it hidden the rest of the time (animal placement, plane scanning) so it doesn't clutter the screen.
         handZoneOverlay.isHidden = false
         view.bringSubviewToFront(handZoneOverlay)
     }
-    
-    @objc func didTapPickUpFood(_ sender: UIButton) {
-        guard case .idle = feedingState else {
-            statusLabel.text = "Kamu udah pegang makanan"
-            return
-        }
-        
-        guard let foodNode = sceneView.hitTestVirtualNode(named: "food") else {
-            print("DEBUG: no food node found in scene")
-            statusLabel.text = "Arahkan ke makanan dulu"
-            return
-        }
-        
-        // Detach from AR anchor tracking since it's now "held", not placed in the world.
-        if let virtualFood = foodNode as? VirtualObject, let anchor = virtualFood.anchor {
-            session.remove(anchor: anchor)
-            virtualFood.anchor = nil
-        }
-        foodNode.removeFromParentNode()
-        
-        feedingState = .carryingFood(foodNode)
-        statusLabel.text = "Makanan diambil! Arahkan ke hewan."
-        pickUpButton.isEnabled = false
-        feedButton.isEnabled = true
-    }
-    
-    @objc func didTapFeedAnimal(_ sender: UIButton) {
-        guard case .carryingFood(let food) = feedingState else {
-            statusLabel.text = "Ambil makanan dulu"
-            return
-        }
-        
-        guard sceneView.hitTestVirtualNode(named: "animal") != nil else {
-            statusLabel.text = "Arahkan ke hewan dulu"
-            return
-        }
-        
-        // TODO: ganti Bool.random() ini dengan logic asli (misal: preferensi makanan tertentu)
-        let animalAccepts = Bool.random()
-        
-        if animalAccepts {
-            statusLabel.text = "Hewan suka makanannya! 🐾"
-            food.removeFromParentNode() // makanan "dimakan", hilang dari scene
-        } else {
-            statusLabel.text = "Hewan menolak makanannya 😾"
-            // taruh lagi makanannya balik ke dunia di depan animal, bukan dibuang
-            flingAwayAndRemove(food)
-        }
-        
-        feedingState = .idle
-        pickUpButton.isEnabled = true
-        feedButton.isEnabled = false
-    }
-    
-    // MARK: - Helpers
-    
 }

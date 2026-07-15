@@ -20,32 +20,39 @@ import SceneKit
 import UIKit
 
 class ViewController: UIViewController {
-    
     // MARK: IBOutlets
-    
     @IBOutlet var sceneView: VirtualObjectARView!
-    
-    @IBOutlet weak var addObjectButton: UIButton!
-    
-    @IBOutlet weak var blurView: UIVisualEffectView!
-    
-    @IBOutlet weak var spinner: UIActivityIndicatorView!
-    
-    @IBOutlet weak var upperControlsView: UIView!
     
     // MARK: Properties
 
-    let pickUpButton = UIButton(type: .system)
-    let feedButton = UIButton(type: .system)
+    /// Tracks whether the player is empty-handed or currently "holding" a food node.
+    /// Read this together with `checkFeedingProgress()` in ViewController+Feeding.swift.
     var feedingState: FeedingState = .idle
+    
+    /// Accumulates time (in seconds) while the player's gaze/food stays inside the
+    /// pick-up zone. Reset to 0 the moment the food leaves the zone. Once it crosses
+    /// `dwellThreshold`, the pick-up action fires automatically — this is what lets
+    /// young users interact without needing to tap a button.
     var pickUpDwellTimer: TimeInterval = 0
     var feedDwellTimer: TimeInterval = 0
-    let dwellThreshold: TimeInterval = 0.8   // 0.8 detik diam di posisi bener baru ke-trigger
+    
+    /// How long (seconds) something needs to "dwell" in the target zone before
+    /// the app treats it as a confirmed action.
+    let dwellThreshold: TimeInterval = 0.8
+    
+    /// The two-diagonal-rectangle overlay that shows the player where to aim to
+    /// pick up / feed. Hidden by default; shown only after "Spawn Food" is tapped.
     var handZoneOverlay: HandZoneOverlayView!
+    
     let statusLabel = UILabel()
+    
+    /// Throttling for the per-frame feeding check (see ViewController+ARSCNViewDelegate.swift).
+    /// SceneKit's renderer callback fires every frame (~60x/sec); we don't need to
+    /// run hit-testing that often, so we only run the check every `feedingCheckInterval`.
     var lastFeedingCheckTime: TimeInterval = 0
     let feedingCheckInterval: TimeInterval = 1.0 / 10.0
     var isCheckingFeeding = false
+    
     var spawnFoodButton: UIButton!
     
     
@@ -53,19 +60,16 @@ class ViewController: UIViewController {
     // MARK: - UI Elements
     
     let coachingOverlay = ARCoachingOverlayView()
-    
-    /// The view controller that displays the status and "restart experience" UI.
-//    lazy var statusViewController: StatusViewController = {
-//        return children.lazy.compactMap({ $0 as? StatusViewController }).first!
-//    }()
-    
-    /// Coordinates the loading and unloading of reference nodes for virtual objects.
-//    let virtualObjectLoader = VirtualObjectLoader()
-    
+        
     /// Marks if the AR experience is available for restart.
     var isRestartAvailable = true
     
     /// A serial queue used to coordinate adding or removing nodes from the scene.
+    /// ARAnchors from a single thread. ARKit/SceneKit calls can come from
+    /// different threads (main thread for UI, renderer thread for delegate
+    /// callbacks); mutating the scene graph from two threads at once is a
+    /// classic crash source, so everything that touches nodes/anchors goes
+    /// through `updateQueue.async { ... }`.
     let updateQueue = DispatchQueue(label: "com.nadia.ARProject")
     
     /// Convenience accessor for the session owned by ARSCNView.
@@ -73,6 +77,9 @@ class ViewController: UIViewController {
         return sceneView.session
     }
     
+    /// Tap handler for placing the animal. Fires a raycast from the center of
+    /// the screen (not from the tap location — see `getRaycastQuery`), and if
+    /// it hits a detected horizontal plane, spawns the animal there.
     @objc func showVirtualObjectSelectionViewController() {
         // 1. Get the current raycast query from the center screen / focus square alignment
         guard let query = sceneView.getRaycastQuery(for: .horizontal),
@@ -90,9 +97,6 @@ class ViewController: UIViewController {
             
             // Update UI states on the main thread
             DispatchQueue.main.sync {
-                
-                // Optional: Hide the default add button or change its state
-//                self.addObjectButton.isHidden = true
             }
         }
     }
@@ -103,32 +107,23 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         
         sceneView.delegate = self
-//        sceneView.session.delegate = self
         
-        // Set up coaching overlay.
+        /// Set up coaching overlay (the "move your phone around" system UI
+        /// that appears while ARKit is still detecting a surface).
         setupCoachingOverlay()
 
-        // Set up scene content.
-//        sceneView.scene.roo÷tNode.addChildNode(focusSquare)
-
-        // Hook up status view controller callback(s).
-//        statusViewController.restartExperienceHandler = { [unowned self] in
-//            self.restartExperience()
-//        }
+        /// Tap anywhere on screen -> try to place the animal.
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(showVirtualObjectSelectionViewController))
-            
-            // Comment out this gesture delegate line:
-            // tapGesture.delegate = self
             sceneView.addGestureRecognizer(tapGesture)
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        // Prevent the screen from being dimmed to avoid interuppting the AR experience.
+        /// Prevent the screen from being dimmed to avoid interuppting the AR experience.
         UIApplication.shared.isIdleTimerDisabled = true
 
-        // Start the `ARSession`.
+        /// Start the `ARSession`.
         resetTracking()
     }
     
@@ -145,9 +140,12 @@ class ViewController: UIViewController {
     // MARK: - Session management
     
     /// Creates a new AR configuration to run on the `session`.
+    /// `.resetTracking` + `.removeExistingAnchors` wipes any previous
+    /// world-tracking state, which is what you want on a fresh app launch,
+    /// but be aware it also removes any anchors you've placed if you ever
+    /// call this mid-session (e.g. after an error).
+
     func resetTracking() {
-//        virtualObjectInteraction.selectedObject = nil
-        
         let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = [.horizontal, .vertical]
         if #available(iOS 12.0, *) {
@@ -156,59 +154,13 @@ class ViewController: UIViewController {
         session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
 
     }
-
-    // MARK: - Focus Square
-
-//    func updateFocusSquare(isObjectVisible: Bool) {
-//        if isObjectVisible || coachingOverlay.isActive {
-////            focusSquare.hide()
-//        } else {
-////            focusSquare.unhide()
-//            statusViewController.scheduleMessage("TRY MOVING LEFT OR RIGHT", inSeconds: 5.0, messageType: .focusSquare)
-//        }
-//        
-//        // Perform ray casting only when ARKit tracking is in a good state.
-//        if let camera = session.currentFrame?.camera, case .normal = camera.trackingState,
-//            let query = sceneView.getRaycastQuery(),
-//            let result = sceneView.castRay(for: query).first {
-//            
-////            updateQueue.async {
-////                self.sceneView.scene.rootNode.addChildNode(self.focusSquare)
-////                self.focusSquare.state = .detecting(raycastResult: result, camera: camera)
-////            }
-//            
-//            if !coachingOverlay.isActive {
-//                addObjectButton.isHidden = false
-//            }
-//            statusViewController.cancelScheduledMessage(for: .focusSquare)
-//        } else {
-//            updateQueue.async {
-////                self.focusSquare.state = .initializing
-//                self.sceneView.pointOfView?.addChildNode(self.focusSquare)
-//            }
-//            addObjectButton.isHidden = true
-//            objectsViewController?.dismiss(animated: false, completion: nil)
-//        }
-//    }
     
-    // MARK: - Error handling
+    // MARK: - Building the UI in code (no storyboard)
     
-    func displayErrorMessage(title: String, message: String) {
-        // Blur the background.
-        blurView.isHidden = false
-        
-        // Present an alert informing about the error that has occurred.
-        let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        let restartAction = UIAlertAction(title: "Restart Session", style: .default) { _ in
-            alertController.dismiss(animated: true, completion: nil)
-            self.blurView.isHidden = true
-            self.resetTracking()
-        }
-        alertController.addAction(restartAction)
-        present(alertController, animated: true, completion: nil)
-    }
-    
-    // ViewController.swift
+    /// Because `loadView()` is overridden, UIKit will NOT load a .xib/storyboard
+    /// for this view controller — this method is entirely responsible for
+    /// creating `self.view` and everything in it.
+    /// ViewController.swift
     override func loadView() {
         let customARView = VirtualObjectARView(frame: .zero)
         self.sceneView = customARView
@@ -243,22 +195,5 @@ class ViewController: UIViewController {
         statusLabel.frame = CGRect(x: 20, y: 60, width: view.bounds.width - 40, height: 40)
         spawnFoodButton.frame = CGRect(x: 40, y: view.bounds.height - 100, width: 140, height: 40)
     }
-    
-    // MARK: - Temporary Action Triggers
-
-//    @objc func didTapGiveFoodButton(_ sender: UIButton) {
-//        // 1. Ensure the scene updates run safely on your serial queue to prevent crashes
-//        updateQueue.async {
-//            // 2. Call the spawning method we added to VirtualObjectARView
-//            self.sceneView.spawnFoodAroundAnimal()
-//            
-//            // 3. Update the UI state message on the main thread safely
-//            DispatchQueue.main.async {
-//                // Optional: Disable the button so you can only spawn the 3 foods once per test
-//                sender.isEnabled = false
-//            }
-//        }
-//    }
-
 }
 
