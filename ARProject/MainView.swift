@@ -27,18 +27,18 @@ struct ContentView : View {
             }
             .edgesIgnoringSafeArea(.all)
             
-//            VStack {
-//                Text(arManager.distanceText)
-//                    .font(.title2)
-//                    .bold()
-//                    .foregroundColor(.white)
-//                    .padding()
-//                    .background(Color.black.opacity(0.7))
-//                    .cornerRadius(10)
-//                    .padding(.top, 50)
-//                
-//                Spacer()
-//            }
+            VStack {
+                Text(arManager.distanceText)
+                    .font(.title2)
+                    .bold()
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Color.black.opacity(0.7))
+                    .cornerRadius(10)
+                    .padding(.top, 50)
+                
+                Spacer()
+            }
         }
     }
 }
