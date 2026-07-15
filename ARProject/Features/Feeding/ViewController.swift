@@ -215,6 +215,7 @@ class ViewController: UIViewController {
         self.view = customARView
 
         let overlay = HandZoneOverlayView(frame: .zero)
+        overlay.isHidden = true
         self.view.addSubview(overlay)
         self.handZoneOverlay = overlay
 

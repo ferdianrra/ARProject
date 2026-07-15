@@ -106,6 +106,7 @@ extension ViewController {
         if animalAccepts {
             statusLabel.text = "Hewan suka makanannya! 🐾"
             food.removeFromParentNode()
+//            allSpawnedObjects.removeAll { $0 === food }
         } else {
             statusLabel.text = "Hewan menolak makanannya 😾"
             flingAwayAndRemove(food)
@@ -118,15 +119,20 @@ extension ViewController {
     
     /// Melempar makanan menjauh dari kamera (efek "ditolak/mental") lalu menghapusnya dari scene.
     private func flingAwayAndRemove(_ food: SCNNode) {
-        let randomX = Float.random(in: -0.3...0.3)
-        let flingAction = SCNAction.move(by: SCNVector3(randomX, 0.25, -0.5), duration: 0.4)
+        // Pilih sisi kiri atau kanan secara acak, dengan jarak yang jelas terlihat (samping)
+        let sideDirection: Float = Bool.random() ? 1 : -1
+        let sideDistance: Float = Float.random(in: 0.4...0.6) * sideDirection
+        
+        // Z POSITIF (bukan negatif) = mundur menjauhi arah pandang kamera = menjauh dari animal.
+        // Y sedikit naik buat efek "kepental", bukan cuma geser datar.
+        let flingAction = SCNAction.move(by: SCNVector3(sideDistance, 0.2, 0.3), duration: 0.4)
         flingAction.timingMode = .easeOut
         let fadeAction = SCNAction.fadeOut(duration: 0.4)
         let group = SCNAction.group([flingAction, fadeAction])
-
         food.runAction(group) {
             food.removeFromParentNode()
         }
+
     }
         
     // MARK: - Actions
@@ -138,6 +144,9 @@ extension ViewController {
         }
         sceneView.spawnFoodAroundAnimal()
         statusLabel.text = "Makanan muncul di sekitar hewan"
+        
+        handZoneOverlay.isHidden = false
+        view.bringSubviewToFront(handZoneOverlay)
     }
     
     @objc func didTapPickUpFood(_ sender: UIButton) {

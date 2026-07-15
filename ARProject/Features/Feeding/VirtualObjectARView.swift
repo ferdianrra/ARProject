@@ -30,19 +30,21 @@ class VirtualObjectARView: ARSCNView {
 //            return VirtualObject.existingObjectContainingNode(result.node)
 //        }.first
 //    }
+    // - MARK: Spawning the Animal
     
-    // - MARK: Object anchors
+    var allSpawnedObjects: [VirtualObject] = []
+    
+    // MARK: Anchor binding
+    
     func addOrUpdateAnchor(for object: VirtualObject) {
-        // If the anchor is not nil, remove it from the session.
         if let anchor = object.anchor {
             session.remove(anchor: anchor)
         }
-        
-        // Create a new anchor with the object's current transform and add it to the session
         let newAnchor = ARAnchor(transform: object.simdWorldTransform)
         object.anchor = newAnchor
         session.add(anchor: newAnchor)
     }
+    
     
     func spawnThreeRandomFoods(at baseResult: ARRaycastResult) {
         let baseTransform = baseResult.worldTransform
@@ -66,27 +68,28 @@ class VirtualObjectARView: ARSCNView {
         }
     }
     
-    // - MARK: Spawning the Animal
-    
-    // VirtualObjectARView.swift atau ViewController, simpen mapping ini
-    var pendingVirtualObjects: [UUID: VirtualObject] = [:]
+
 
     /// Spawns a single dummy animal object at the specified raycast result location.
     func spawnAnimal(at result: ARRaycastResult) {
         // 1. Check if an animal already exists so we don't spawn multiple animals
-        if self.scene.rootNode.childNode(withName: "animal", recursively: true) != nil {
+        if scene.rootNode.childNode(withName: "animal", recursively: true) != nil {
             print("An animal already exists in the scene!")
             return
         }
         
         // 2. Create the animal using the custom dummy initializer (.animalBox is a 40cm blue box)
         let dummyAnimal = VirtualObject(dummyShape: .animalBox, color: .systemBlue, name: "animal")
+        dummyAnimal.simdWorldTransform = result.worldTransform
         
-        let anchor = ARAnchor(transform: result.worldTransform)
-        
-        dummyAnimal.anchor = anchor
-        pendingVirtualObjects[anchor.identifier] = dummyAnimal
-        session.add(anchor: anchor)
+        self.scene.rootNode.addChildNode(dummyAnimal)
+        self.addOrUpdateAnchor(for: dummyAnimal)
+        allSpawnedObjects.append(dummyAnimal)
+//        let anchor = ARAnchor(transform: result.worldTransform)
+//        
+//        dummyAnimal.anchor = anchor
+//        pendingVirtualObjects[anchor.identifier] = dummyAnimal
+//        session.add(anchor: anchor)
     }
     
     
@@ -108,19 +111,24 @@ class VirtualObjectARView: ARSCNView {
             let dummyFood = VirtualObject(dummyShape: .foodSphere, color: .orange, name: "food")
             
             let angle = Float.random(in: 0..<(2 * .pi))
-            let radius = Float.random(in: 1...1.5)
+            let radius = Float.random(in: 0.3...0.6)
             
             // 5. Copy the animal's matrix and apply the offsets to X and Z
             var foodTransform = animalTransform
             foodTransform.columns.3.x += radius * cos(angle)
             foodTransform.columns.3.z += radius * sin(angle)
             foodTransform.columns.3.y = animalTransform.columns.3.y + 0.02
-
-            let anchor = ARAnchor(transform: foodTransform)
             
-            dummyFood.anchor = anchor
-            pendingVirtualObjects[anchor.identifier] = dummyFood
-            session.add(anchor: anchor)
+            dummyFood.simdWorldTransform = foodTransform
+
+//            let anchor = ARAnchor(transform: foodTransform)
+            
+            self.scene.rootNode.addChildNode(dummyFood)
+            self.addOrUpdateAnchor(for: dummyFood)
+            allSpawnedObjects.append(dummyFood)
+//            dummyFood.anchor = anchor
+//            pendingVirtualObjects[anchor.identifier] = dummyFood
+//            session.add(anchor: anchor)
         }
     }
 }
