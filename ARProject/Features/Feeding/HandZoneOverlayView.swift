@@ -4,18 +4,29 @@
 //
 //  Created by Nadia Putri Natali Lubis on 14/07/26.
 //
-//  Draws two diagonal yellow "arms" that visually converge at the center of
-//  the screen, forming a V-shape hinting where the player should aim to pick
-//  up / feed. Pure UIKit drawing (CALayer transforms), no AR content — this
-//  view just overlays the AR camera feed. No unused code found in this file.
+//  Draws two diagonal yellow "arms" that visually converge at the center of the screen, forming a V-shape hinting where the player should aim to pick up / feed. Pure UIKit drawing (CALayer transforms), no AR content — this view just overlays the AR camera feed. No unused code found in this file.
 //
 
 import UIKit
 
 class HandZoneOverlayView: UIView {
-    private let leftHand = UIView()
-    private let rightHand = UIView()
-
+    private let leftHand = UIImageView()
+    private let rightHand = UIImageView()
+    
+    enum HandState {
+        case reaching
+        case grabbing
+    }
+    
+    /// Call this from `ViewController+Feeding.swift` whenever the catch state changes — e.g. `overlay.state = .grabbing` when food enters`zoneRect`, and `.reaching` once it's released/reset.
+    var state: HandState = .reaching {
+        didSet {
+            guard oldValue != state else { return }
+            updateImages(for: state)
+            setNeedsLayout()
+        }
+    }
+    
     /// The target zone at the center of the screen where food needs to be
     /// aimed. `ViewController+Feeding.swift` checks whether a food node's
     /// projected 2D screen position falls inside this rect to decide whether
@@ -27,53 +38,127 @@ class HandZoneOverlayView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        leftHand.image = UIImage(named: "reach-lefthand")
+        rightHand.image = UIImage(named: "reach-righthand")
+
         [leftHand, rightHand].forEach {
-            $0.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.85)
-            $0.layer.cornerRadius = 14
+            $0.contentMode = .scaleAspectFit
+            $0.clipsToBounds = true
             addSubview($0)
         }
-        // This overlay is purely visual — don't let it intercept touches
-        // meant for the AR view underneath (e.g. the tap-to-place gesture).
+
+        // Debug only — uncomment to visualize each hand's actual bounding box
+//         leftHand.backgroundColor = .red.withAlphaComponent(0.3)
+//         rightHand.backgroundColor = .blue.withAlphaComponent(0.3)
+
         isUserInteractionEnabled = false
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
+    private func updateImages(for state: HandState) {
+        switch state {
+        case .reaching:
+            leftHand.image = UIImage(named: "reach-lefthand")
+            rightHand.image = UIImage(named: "reach-righthand")
+        case .grabbing:
+            leftHand.image = UIImage(named: "grab-lefthand")
+            rightHand.image = UIImage(named: "grab-righthand")
+        }
+    }
+    
     override func layoutSubviews() {
         super.layoutSubviews()
         guard bounds.width > 0, bounds.height > 0 else { return }
 
-        let center = CGPoint(x: bounds.midX, y: bounds.midY)
-        let thickness: CGFloat = max(36, bounds.width * 0.05)
+        // Fixed hand size — proportional to screen width, not distance-based
+        let handWidth = bounds.width * 0.32
+        
+        switch state {
+        case .reaching:
+//            let leftAnchor = CGPoint(x: bounds.minX + handWidth * 0.35, y: bounds.maxY + 100)
+//            let rightAnchor = CGPoint(x: bounds.maxX - handWidth * 0.35, y: bounds.maxY + 100)
+//            configureHand(leftHand, targetWidth: handWidth, anchorPoint: leftAnchor, rotation: 25 * .pi / 180)
+//            configureHand(rightHand, targetWidth: handWidth, anchorPoint: rightAnchor, rotation: -25 * .pi / 180)
+            
+            let leftAnchor = CGPoint(x: bounds.minX + handWidth * 0.35, y: bounds.maxY + 100)
+            let rightAnchor = CGPoint(x: bounds.maxX - handWidth * 0.35, y: bounds.maxY + 100)
 
-        // Each "arm" stretches from screen center out to near a bottom corner.
-        let bottomLeft = CGPoint(x: bounds.minX + 20, y: bounds.maxY - 40)
-        let bottomRight = CGPoint(x: bounds.maxX - 20, y: bounds.maxY - 40)
-
-        configureArm(leftHand, from: center, to: bottomLeft, thickness: thickness)
-        configureArm(rightHand, from: center, to: bottomRight, thickness: thickness)
+            configureHand(leftHand, targetWidth: handWidth, anchorPoint: leftAnchor, rotation: 25 * .pi / 180)
+            configureHand(rightHand, targetWidth: handWidth, anchorPoint: rightAnchor, rotation: -25 * .pi / 180)
+            
+        case .grabbing:
+            // Hands move up and inward toward the zoneRect, and stand more upright
+            let leftAnchor = CGPoint(x: bounds.midX - handWidth , y: bounds.midY + handWidth * 1.7)
+            let rightAnchor = CGPoint(x: bounds.midX + handWidth , y: bounds.midY + handWidth * 1.7)
+            configureHand(leftHand, targetWidth: handWidth, anchorPoint: leftAnchor, rotation: 15 * .pi / 180)
+            configureHand(rightHand, targetWidth: handWidth, anchorPoint: rightAnchor, rotation: -15 * .pi / 180)
+        }
     }
 
-    /// Positions one "arm" so that one end sits exactly at `pivot` (screen
-    /// center), then stretches out toward `farPoint`.
+    /// Positions a fixed-size hand image so its WRIST (bottom-center of the
+    /// image) sits at `anchorPoint`, then tilts it by `rotation` so the
+    /// fingers angle up and inward toward the center of the screen.
     ///
-    /// The trick: setting `anchorPoint` to (0, 0.5) makes the LEFT-CENTER
-    /// edge of the layer the rotation/position anchor, instead of the
-    /// default center. That lets us place that anchor exactly at `pivot` via
-    /// `layer.position`, then rotate the whole bar around it — which is what
-    /// guarantees both arms always meet exactly at screen center, regardless
-    /// of screen size. `atan2(dy, dx)` gives the angle from pivot to
-    /// farPoint, and `sqrt(dx*dx + dy*dy)` (Pythagorean theorem) gives the
-    /// straight-line distance, which becomes the bar's length.
-    private func configureArm(_ arm: UIView, from pivot: CGPoint, to farPoint: CGPoint, thickness: CGFloat) {
-        let dx = farPoint.x - pivot.x
-        let dy = farPoint.y - pivot.y
-        let length = sqrt(dx * dx + dy * dy)
-        let angle = atan2(dy, dx)
+    /// The height is derived from the image's real aspect ratio (not a
+    /// guessed multiplier), so the view's bounds always match the visible
+    /// pixels — no leftover transparent margin.
+    private func configureHand(_ hand: UIImageView, targetWidth: CGFloat, anchorPoint: CGPoint, rotation: CGFloat) {
+        let aspectRatio: CGFloat
+        if let image = hand.image, image.size.width > 0 {
+            aspectRatio = image.size.height / image.size.width
+        } else {
+            aspectRatio = 1.35 // fallback if image failed to load
+        }
 
-        arm.bounds = CGRect(x: 0, y: 0, width: length, height: thickness)
-        arm.layer.anchorPoint = CGPoint(x: 0, y: 0.5) // anchor at the bar's left edge, vertically centered
-        arm.layer.position = pivot                     // pin that anchor to screen center
-        arm.layer.transform = CATransform3DMakeRotation(angle, 0, 0, 1)
+        let size = CGSize(width: targetWidth, height: targetWidth * aspectRatio)
+
+        hand.bounds = CGRect(origin: .zero, size: size)
+        hand.layer.anchorPoint = CGPoint(x: 0.5, y: 1.0) // bottom-center = wrist
+        hand.layer.position = anchorPoint
+        hand.layer.transform = CATransform3DMakeRotation(rotation, 0, 0, 1)
+        
+        UIView.animate(withDuration: 0.2) {
+                    hand.bounds = CGRect(origin: .zero, size: size)
+                    hand.layer.anchorPoint = CGPoint(x: 0.5, y: 1.0) // bottom-center = wrist
+                    hand.layer.position = anchorPoint
+                    hand.layer.transform = CATransform3DMakeRotation(rotation, 0, 0, 1)
+                }
     }
+}
+
+#Preview("iPad Pro 11\" - Landscape") {
+    // 11-inch iPad Pro landscape dimensions (1210 x 834 points)
+    let containerView = UIView(frame: CGRect(x: 0, y: 0, width: 1210, height: 834))
+    containerView.backgroundColor = .darkGray
+
+    let overlay = HandZoneOverlayView(frame: containerView.bounds)
+    overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+    containerView.addSubview(overlay)
+    return containerView
+}
+
+#Preview("Reaching - iPad Pro 11\" Landscape") {
+    let containerView = UIView(frame: CGRect(x: 0, y: 0, width: 1210, height: 834))
+    containerView.backgroundColor = .darkGray
+
+    let overlay = HandZoneOverlayView(frame: containerView.bounds)
+    overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    overlay.state = .reaching
+
+    containerView.addSubview(overlay)
+    return containerView
+}
+
+#Preview("Grabbing - iPad Pro 11\" Landscape") {
+    let containerView = UIView(frame: CGRect(x: 0, y: 0, width: 1210, height: 834))
+    containerView.backgroundColor = .darkGray
+
+    let overlay = HandZoneOverlayView(frame: containerView.bounds)
+    overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    overlay.state = .grabbing
+
+    containerView.addSubview(overlay)
+    return containerView
 }
