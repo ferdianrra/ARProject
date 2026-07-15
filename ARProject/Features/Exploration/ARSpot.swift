@@ -13,7 +13,8 @@ class ARSpot {
     var scatteredFlowers: [Entity] = []
     
     var circleEntity: ModelEntity?
-    
+    var wingAudioController: AudioPlaybackController?
+
     init(id: Int, center: SIMD3<Float>) {
         self.id = id
         self.center = center

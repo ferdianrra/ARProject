@@ -27,6 +27,7 @@ class ARManager: ObservableObject {
     
     private var coloredButterflyTemplate: Entity?
     private var flowerHabitatTemplate: Entity?
+    private var butterflyWingAudio: AudioFileResource?
     
     private var anchorRef: AnchorEntity?
     private var auraTimer: Timer?
@@ -74,11 +75,20 @@ class ARManager: ObservableObject {
         self.anchorRef = planeAnchor
         
         habitatController.setupHabitats(spots: spots, planeAnchor: planeAnchor)
-        
+
         auraTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
             self?.habitatController.updateAura()
         }
-        
+
+        do {
+            self.butterflyWingAudio = try AudioFileResource.load(
+                named: "butterflyWing.wav",
+                configuration: .init(shouldLoop: true)
+            )
+        } catch {
+            print("error load butterflyWing.wav: \(error)")
+        }
+
         Task {
             do {
                 let template = try await Entity(named: "butterfly", in: nil)
@@ -158,6 +168,10 @@ class ARManager: ObservableObject {
                             self.wanderController.spawnButterfly(at: spot, template: template, anchor: anchor)
                         }
                         self.habitatController.setFlowerHabitat(at: spot, count: 24, scale: 0.0012, scatteringRadius: 1.3, template: self.flowerHabitatTemplate, anchor: anchor)
+
+                        if let wingAudio = self.butterflyWingAudio {
+                            spot.wingAudioController = spot.activeButterfly?.playAudio(wingAudio)
+                        }
                     }
                 }
             } else {
@@ -166,6 +180,9 @@ class ARManager: ObservableObject {
                     self.wanderController.stopWandering(at: spot)
                     self.habitatController.animateCircleScale(for: spot, to: 0.25)
                     self.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0005, scatteringRadius: 0.2, template: self.flowerHabitatTemplate, anchor: anchor)
+
+                    spot.wingAudioController?.stop()
+                    spot.wingAudioController = nil
                 }
             }
         }
