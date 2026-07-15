@@ -25,13 +25,21 @@ class ARSpot {
 class ARManager: ObservableObject {
     @Published var distanceText: String = "Mencari objek..."
     @Published var currentAnimalName: String = ""
+    @Published var isCoaching: Bool = true
+    @Published var isTooFar: Bool = true
+    @Published var showFacts: Bool = false
+    
+    var subscriptions: [AnyCancellable] = [] 
+    var eventSubscriptions: [EventSubscription] = []
     
     var cameraAnchor: AnchorEntity?
     var cubeModel: Entity?
     var baseRotation: simd_quatf = .init(angle: 0, axis: [0, 1, 0])
     var animalEntity: Entity?
     
+    
     private var isSpawningAnimal = false
+    private var distanceTimer: Timer?
     
     private var coloredButterflyTemplate: Entity?
     private var flowerHabitatTemplate: Entity?
@@ -48,6 +56,105 @@ class ARManager: ObservableObject {
         ARSpot(id: 2, center: [-0.6, 0.05,  0.6]),
         ARSpot(id: 3, center: [ 0.6, 0.05,  0.6])
     ]
+    
+    func startDistanceTracking() {
+        distanceTimer?.invalidate()
+        distanceTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self,
+                  let cam = self.cameraAnchor,
+                  let animal = self.animalEntity else { return }
+            
+            let dist = distance(cam.position(relativeTo: nil), animal.position(relativeTo: nil))
+            DispatchQueue.main.async {
+                self.isTooFar = dist > 0.5
+            }
+            
+            // Continuously update sticky notes to face the user
+            if self.showFacts {
+                let facts = animal.children.filter { $0.name.hasPrefix("factTag_") }
+                for fact in facts {
+                    fact.look(at: cam.position(relativeTo: animal), from: fact.position(relativeTo: animal), relativeTo: animal)
+                }
+            }
+        }
+    }
+    
+    func toggleFacts(show: Bool) {
+        guard let animal = animalEntity else { return }
+        
+        if show {
+            let facts = [
+                ("The African Giant Swallowtail (Papilio antimachus)", SIMD3<Float>(0, 0.35, 0), UIColor.purple),
+                ("Location: West & Central Africa", SIMD3<Float>(-0.25, 0.2, 0), UIColor.systemBlue),
+                ("Endangered Status: Data Deficient (DD)", SIMD3<Float>(0.25, 0.2, 0), UIColor.systemOrange),
+                ("Size: Wingspan 18-23 cm", SIMD3<Float>(0, 0.2, 0.25), UIColor.systemGreen)
+            ]
+            
+            for (index, fact) in facts.enumerated() {
+                let textEntity = createTextEntity(text: fact.0, color: fact.2)
+                textEntity.name = "factTag_\(index)"
+                textEntity.position = fact.1
+                animal.addChild(textEntity)
+            }
+        } else {
+            // Remove them
+            let children = animal.children.filter { $0.name.hasPrefix("factTag_") }
+            for child in children {
+                child.removeFromParent()
+            }
+        }
+    }
+    
+    private func createTextEntity(text: String, color: UIColor) -> Entity {
+        let noteSize: Float = 0.22
+        
+        // 1. Create the square post-it note paper
+        let paperMesh = MeshResource.generatePlane(width: noteSize, height: noteSize, cornerRadius: 0.01)
+        let paperMaterial = SimpleMaterial(color: color, roughness: 0.8, isMetallic: false)
+        let paperEntity = ModelEntity(mesh: paperMesh, materials: [paperMaterial])
+        
+        // 2. Create the text that wraps inside the square
+        let textMargin: Float = 0.02
+        let textWidth = noteSize - textMargin * 2
+        // Container frame is centered
+        let textRect = CGRect(x: CGFloat(-textWidth / 2), y: CGFloat(-textWidth / 2), width: CGFloat(textWidth), height: CGFloat(textWidth))
+        
+        let textMesh = MeshResource.generateText(text, 
+                                                 extrusionDepth: 0.001, 
+                                                 font: .boldSystemFont(ofSize: 0.022), 
+                                                 containerFrame: textRect, 
+                                                 alignment: .center, 
+                                                 lineBreakMode: .byWordWrapping)
+        
+        let textMaterial = SimpleMaterial(color: .white, isMetallic: false)
+        let textEntity = ModelEntity(mesh: textMesh, materials: [textMaterial])
+        
+        // Put text slightly in front of the paper
+        textEntity.position = [0, 0, 0.002]
+        
+        let wrapper = Entity()
+        wrapper.addChild(paperEntity)
+        wrapper.addChild(textEntity)
+        return wrapper
+    }
+    
+    func spawnCube(name animalName: String, on pAnchor: AnchorEntity) {
+        let loadedAnimal: Entity
+        
+        if animalName == "cube" {
+            let mesh = MeshResource.generateBox(size: 0.1, cornerRadius: 0.005)
+            let material = SimpleMaterial(color: .orange, roughness: 0.2, isMetallic: true)
+            loadedAnimal = ModelEntity(mesh: mesh, materials: [material])
+        } else if let entity = try? Entity.load(named: animalName) {
+            loadedAnimal = entity
+        } else {
+            print("Failed to load \(animalName). Using a fallback sphere.")
+            let mesh = MeshResource.generateSphere(radius: 0.1)
+            let material = SimpleMaterial(color: .orange, roughness: 0.2, isMetallic: true)
+            loadedAnimal = ModelEntity(mesh: mesh, materials: [material])
+        }
+    }
+    
     
     func setup(cameraAnchor: AnchorEntity, planeAnchor: AnchorEntity) {
         self.cameraAnchor = cameraAnchor
@@ -381,6 +488,11 @@ class ARManager: ObservableObject {
         loadedAnimal.generateCollisionShapes(recursive: true)
         loadedAnimal.components.set(InputTargetComponent())
         
+        // Remove existing animal if any
+        if let existing = self.animalEntity {
+            existing.removeFromParent()
+        }
+        
         pAnchor.addChild(loadedAnimal)
         self.animalEntity = loadedAnimal
         
@@ -415,6 +527,31 @@ class ARManager: ObservableObject {
                 let bounceScale = Float(sin(progress * .pi / 2)) * targetScale
                 loadedAnimal.scale = [bounceScale, bounceScale, bounceScale]
             }
+        }
+    }
+    
+    func setScale(_ newScale: Float) {
+        guard let animal = animalEntity else { return }
+        // Base target scale is 0.3, so we multiply the newScale by 0.3
+        let finalScale = newScale * 0.3
+        animal.scale = SIMD3<Float>(repeating: finalScale)
+    }
+    
+    func changePhase(to phase: Int) {
+        guard let anchor = cameraAnchor?.parent as? AnchorEntity ?? animalEntity?.parent as? AnchorEntity else { return }
+        
+        var assetName = ""
+        switch phase {
+        case 1: assetName = "butterfly-egg.usdc"
+        case 2: assetName = "butterfly-ulat.usdc"
+        // Add cases 3 and 4 once assets are available
+        case 3: assetName = "butterfly-ulat.usdc" // placeholder
+        case 4: assetName = "butterfly.usdz"
+        default: assetName = "butterfly-egg.usdc"
+        }
+        
+        if currentAnimalName != assetName {
+            spawnAnimal(name: assetName, on: anchor)
         }
     }
     
