@@ -102,7 +102,7 @@ struct ContentView : View {
                     ZStack {
                         Rectangle()
                             .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round, dash: [5, 5]))
-                            .foregroundColor(.blue.opacity(0.8))
+                            .foregroundColor(.orange.opacity(0.8))
                             .frame(width: 150, height: 150)
                         
                         VStack {
@@ -122,13 +122,13 @@ struct ContentView : View {
                     }
                     .frame(width: 180, height: 180)
                     
-                    Text("Ketuk layar untuk meletakkan area")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                    Text("Tap screen to place the area")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
-                        .background(Color.black.opacity(0.6))
-                        .cornerRadius(15)
+                        .background(Color.black.opacity(0.75))
+                        .cornerRadius(20)
                         .padding(.top, 30)
                     
                     Spacer()
@@ -171,8 +171,8 @@ struct CircleGuideView: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.blue, lineWidth: 2)
-                .background(Circle().fill(Color.blue.opacity(0.2)))
+                .stroke(Color.orange, lineWidth: 2)
+                .background(Circle().fill(Color.orange.opacity(0.2)))
                 .frame(width: 40, height: 40)
             Text("?")
                 .font(.system(size: 20, weight: .bold, design: .rounded))

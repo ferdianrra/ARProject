@@ -116,7 +116,7 @@ class ARManager: ObservableObject {
         
         Task {
             do {
-                let template = try await Entity(named: "kepompong_2", in: nil)
+                let template = try await Entity(named: "butterfly", in: nil)
                 self.coloredButterflyTemplate = template.clone(recursive: true)
                 
                 for spot in spots {
@@ -133,7 +133,7 @@ class ARManager: ObservableObject {
             }
             
             do {
-                let flowerTemplate = try await Entity(named: "kepompong_2", in: nil)
+                let flowerTemplate = try await Entity(named: "flower_habitat", in: nil)
                 self.flowerHabitatTemplate = flowerTemplate
                 
                 for spot in spots {
@@ -150,12 +150,12 @@ class ARManager: ObservableObject {
               let anchor = anchorRef else { return }
 
         guard anchor.isAnchored else {
-            self.distanceText = "scanning area sekitar"
+            self.distanceText = "Scanning surrounding area..."
             return
         }
         
         if !isPlaced {
-            self.distanceText = "Ketuk layar untuk meletakkan area"
+            self.distanceText = "Tap screen to place the area"
             DispatchQueue.main.async {
                 if self.isTooFar {
                     self.isTooFar = false
