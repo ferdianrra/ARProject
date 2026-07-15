@@ -43,16 +43,27 @@ struct ContentView : View {
                                 let staticAnchor = AnchorEntity(world: anchor.transformMatrix(relativeTo: nil))
                                 anchor.scene?.addAnchor(staticAnchor)
                                 
-                                manager.spawnAnimal(name: "cube", on: staticAnchor)
-                                manager.startDistanceTracking()
+                                manager.setup(cameraAnchor: camAnchor, planeAnchor: staticAnchor)
                             }
                         }
                     }
                 }
                 manager.eventSubscriptions.append(sub)
+                
+                let updateSub = content.subscribe(to: SceneEvents.Update.self) { _ in
+                    manager.updateScene()
+                }
+                manager.eventSubscriptions.append(updateSub)
             }
             .onChange(of: manager.showFacts) { show in
                 manager.toggleFacts(show: show)
+            }
+            .onChange(of: manager.isTooFar) { tooFar in
+                if !tooFar && panelState == .hidden {
+                    withAnimation {
+                        panelState = .mainButtons
+                    }
+                }
             }
             .gesture(
                 SpatialTapGesture()
@@ -101,6 +112,6 @@ struct ContentView : View {
 
 }
 
-#Preview {
-    ContentView()
-}
+//#Preview {
+//    ContentView()
+//}

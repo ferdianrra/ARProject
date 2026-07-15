@@ -308,6 +308,9 @@ class ARManager: ObservableObject {
         }
         
         if let currentActive = spots.first(where: { $0.isNear }) {
+            DispatchQueue.main.async {
+                self.isTooFar = false
+            }
             for line in lineEntities {
                 line.isEnabled = false
             }
@@ -328,6 +331,9 @@ class ARManager: ObservableObject {
                 }
             }
         } else {
+            DispatchQueue.main.async {
+                self.isTooFar = true
+            }
             for line in lineEntities {
                 line.isEnabled = true
             }

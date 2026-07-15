@@ -2,7 +2,7 @@ import SwiftUI
 import RealityKit
 import ARKit
 
-struct ContentView : View {
+struct MainView : View {
     @StateObject private var arManager = ARManager()
     @State private var sceneUpdateSubscription: EventSubscription?
 
@@ -43,7 +43,7 @@ struct ContentView : View {
     }
 }
 
-#Preview {
-    ContentView()
-}
+//#Preview {
+//    MainView()
+//}
 
