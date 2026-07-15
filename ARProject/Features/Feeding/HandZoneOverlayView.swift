@@ -12,7 +12,21 @@ import UIKit
 class HandZoneOverlayView: UIView {
     private let leftHand = UIImageView()
     private let rightHand = UIImageView()
-
+    
+    enum HandState {
+        case reaching
+        case grabbing
+    }
+    
+    /// Call this from `ViewController+Feeding.swift` whenever the catch state changes — e.g. `overlay.state = .grabbing` when food enters`zoneRect`, and `.reaching` once it's released/reset.
+    var state: HandState = .reaching {
+        didSet {
+            guard oldValue != state else { return }
+            updateImages(for: state)
+            setNeedsLayout()
+        }
+    }
+    
     /// The target zone at the center of the screen where food needs to be
     /// aimed. `ViewController+Feeding.swift` checks whether a food node's
     /// projected 2D screen position falls inside this rect to decide whether
@@ -34,28 +48,52 @@ class HandZoneOverlayView: UIView {
         }
 
         // Debug only — uncomment to visualize each hand's actual bounding box
-         leftHand.backgroundColor = .red.withAlphaComponent(0.3)
-         rightHand.backgroundColor = .blue.withAlphaComponent(0.3)
+//         leftHand.backgroundColor = .red.withAlphaComponent(0.3)
+//         rightHand.backgroundColor = .blue.withAlphaComponent(0.3)
 
-        // This overlay is purely visual — don't let it intercept touches
-        // meant for the AR view underneath (e.g. the tap-to-place gesture).
         isUserInteractionEnabled = false
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
+    
+    private func updateImages(for state: HandState) {
+        switch state {
+        case .reaching:
+            leftHand.image = UIImage(named: "reach-lefthand")
+            rightHand.image = UIImage(named: "reach-righthand")
+        case .grabbing:
+            leftHand.image = UIImage(named: "grab-lefthand")
+            rightHand.image = UIImage(named: "grab-righthand")
+        }
+    }
+    
     override func layoutSubviews() {
         super.layoutSubviews()
         guard bounds.width > 0, bounds.height > 0 else { return }
 
         // Fixed hand size — proportional to screen width, not distance-based
         let handWidth = bounds.width * 0.32
+        
+        switch state {
+        case .reaching:
+//            let leftAnchor = CGPoint(x: bounds.minX + handWidth * 0.35, y: bounds.maxY + 100)
+//            let rightAnchor = CGPoint(x: bounds.maxX - handWidth * 0.35, y: bounds.maxY + 100)
+//            configureHand(leftHand, targetWidth: handWidth, anchorPoint: leftAnchor, rotation: 25 * .pi / 180)
+//            configureHand(rightHand, targetWidth: handWidth, anchorPoint: rightAnchor, rotation: -25 * .pi / 180)
+            
+            let leftAnchor = CGPoint(x: bounds.minX + handWidth * 0.35, y: bounds.maxY + 100)
+            let rightAnchor = CGPoint(x: bounds.maxX - handWidth * 0.35, y: bounds.maxY + 100)
 
-        let leftAnchor = CGPoint(x: bounds.minX + handWidth * 0.35, y: bounds.maxY + 100)
-        let rightAnchor = CGPoint(x: bounds.maxX - handWidth * 0.35, y: bounds.maxY + 100)
-
-        configureHand(leftHand, targetWidth: handWidth, anchorPoint: leftAnchor, rotation: 25 * .pi / 180)
-        configureHand(rightHand, targetWidth: handWidth, anchorPoint: rightAnchor, rotation: -25 * .pi / 180)
+            configureHand(leftHand, targetWidth: handWidth, anchorPoint: leftAnchor, rotation: 25 * .pi / 180)
+            configureHand(rightHand, targetWidth: handWidth, anchorPoint: rightAnchor, rotation: -25 * .pi / 180)
+            
+        case .grabbing:
+            // Hands move up and inward toward the zoneRect, and stand more upright
+            let leftAnchor = CGPoint(x: bounds.midX - handWidth , y: bounds.midY + handWidth * 1.7)
+            let rightAnchor = CGPoint(x: bounds.midX + handWidth , y: bounds.midY + handWidth * 1.7)
+            configureHand(leftHand, targetWidth: handWidth, anchorPoint: leftAnchor, rotation: 15 * .pi / 180)
+            configureHand(rightHand, targetWidth: handWidth, anchorPoint: rightAnchor, rotation: -15 * .pi / 180)
+        }
     }
 
     /// Positions a fixed-size hand image so its WRIST (bottom-center of the
@@ -79,6 +117,13 @@ class HandZoneOverlayView: UIView {
         hand.layer.anchorPoint = CGPoint(x: 0.5, y: 1.0) // bottom-center = wrist
         hand.layer.position = anchorPoint
         hand.layer.transform = CATransform3DMakeRotation(rotation, 0, 0, 1)
+        
+        UIView.animate(withDuration: 0.2) {
+                    hand.bounds = CGRect(origin: .zero, size: size)
+                    hand.layer.anchorPoint = CGPoint(x: 0.5, y: 1.0) // bottom-center = wrist
+                    hand.layer.position = anchorPoint
+                    hand.layer.transform = CATransform3DMakeRotation(rotation, 0, 0, 1)
+                }
     }
 }
 
@@ -89,6 +134,30 @@ class HandZoneOverlayView: UIView {
 
     let overlay = HandZoneOverlayView(frame: containerView.bounds)
     overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+    containerView.addSubview(overlay)
+    return containerView
+}
+
+#Preview("Reaching - iPad Pro 11\" Landscape") {
+    let containerView = UIView(frame: CGRect(x: 0, y: 0, width: 1210, height: 834))
+    containerView.backgroundColor = .darkGray
+
+    let overlay = HandZoneOverlayView(frame: containerView.bounds)
+    overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    overlay.state = .reaching
+
+    containerView.addSubview(overlay)
+    return containerView
+}
+
+#Preview("Grabbing - iPad Pro 11\" Landscape") {
+    let containerView = UIView(frame: CGRect(x: 0, y: 0, width: 1210, height: 834))
+    containerView.backgroundColor = .darkGray
+
+    let overlay = HandZoneOverlayView(frame: containerView.bounds)
+    overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    overlay.state = .grabbing
 
     containerView.addSubview(overlay)
     return containerView

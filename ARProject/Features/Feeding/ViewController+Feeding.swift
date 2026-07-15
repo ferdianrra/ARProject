@@ -76,11 +76,12 @@ extension ViewController {
         /// Re-parent to the camera node (`pointOfView`) so the food stays centered on screen, roughly where the hand-zone graphics converge, regardless of how the user moves their phone.
         if let pov = sceneView.pointOfView {
             foodNode.transform = SCNMatrix4Identity
-            foodNode.position = SCNVector3(0, -0.05, -0.35) // slightly below, ~35cm in front of camera
+            foodNode.position = SCNVector3(0, 0.005, -0.35) // slightly below, ~35cm in front of camera
             pov.addChildNode(foodNode)
         }
 
         feedingState = .carryingFood(foodNode)
+        handZoneOverlay.state = .grabbing
         statusLabel.text = "Makanan diambil! Arahkan ke hewan"
         flashStatus(success: true)
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -131,6 +132,7 @@ extension ViewController {
         flashStatus(success: animalAccepts)
         UINotificationFeedbackGenerator().notificationOccurred(animalAccepts ? .success : .warning)
         feedingState = .idle
+        handZoneOverlay.state = .reaching
     }
 
     /// Flings the rejected food away from the camera (a little "bounced off" effect) and fades it out, then removes it from the scene.
