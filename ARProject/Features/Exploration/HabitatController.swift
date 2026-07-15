@@ -7,7 +7,7 @@ class HabitatController {
     var lineEntities: [ModelEntity] = []
     var auraPhase: Float = 0
     
-    func setupHabitats(spots: [ARSpot], planeAnchor: AnchorEntity) {
+    func setupHabitats(spots: [ARSpot], planeAnchor: Entity) {
         let circleMesh = MeshResource.generateCircle(radius: 1.5)
         var blueMaterial = PhysicallyBasedMaterial()
         blueMaterial.baseColor = .init(tint: .black)
@@ -76,7 +76,7 @@ class HabitatController {
         circle.move(to: targetTransform, relativeTo: circle.parent, duration: 0.5, timingFunction: .easeInOut)
     }
     
-    func setFlowerHabitat(at spot: ARSpot, count: Int, scale: Float, scatteringRadius: Float, template: Entity?, anchor: AnchorEntity) {
+    func setFlowerHabitat(at spot: ARSpot, count: Int, scale: Float, scatteringRadius: Float, template: Entity?, anchor: Entity) {
         guard let template = template else { return }
 
         for flower in spot.scatteredFlowers {
