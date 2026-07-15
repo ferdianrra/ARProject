@@ -103,7 +103,7 @@ class VirtualObjectARView: ARSCNView {
         // 2. Get the animal's current world position matrix
         let animalTransform = animalNode.simdWorldTransform
         
-        for i in 1...3 {
+        for _ in 1...3 {
             // 3. Create a unique food dummy object
             let dummyFood = VirtualObject(dummyShape: .foodSphere, color: .orange, name: "food")
             

@@ -34,11 +34,19 @@ class ViewController: UIViewController {
     @IBOutlet weak var upperControlsView: UIView!
     
     // MARK: Properties
-    var feedingState: FeedingState = .idle
 
-    let statusLabel = UILabel()
     let pickUpButton = UIButton(type: .system)
     let feedButton = UIButton(type: .system)
+    var feedingState: FeedingState = .idle
+    var pickUpDwellTimer: TimeInterval = 0
+    var feedDwellTimer: TimeInterval = 0
+    let dwellThreshold: TimeInterval = 0.8   // 0.8 detik diam di posisi bener baru ke-trigger
+    var handZoneOverlay: HandZoneOverlayView!
+    let statusLabel = UILabel()
+    var lastFeedingCheckTime: TimeInterval = 0
+    let feedingCheckInterval: TimeInterval = 1.0 / 10.0
+    var isCheckingFeeding = false
+    var spawnFoodButton: UIButton!
     
     
 
@@ -143,7 +151,7 @@ class ViewController: UIViewController {
         let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = [.horizontal, .vertical]
         if #available(iOS 12.0, *) {
-            configuration.environmentTexturing = .automatic
+            configuration.environmentTexturing = .none
         }
         session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
 
@@ -200,16 +208,16 @@ class ViewController: UIViewController {
         present(alertController, animated: true, completion: nil)
     }
     
+    // ViewController.swift
     override func loadView() {
-        super.loadView()
-        
-        // 1. Manually initialize the main custom AR View
-        let customARView = VirtualObjectARView(frame: UIScreen.main.bounds)
+        let customARView = VirtualObjectARView(frame: .zero)
         self.sceneView = customARView
         self.view = customARView
-        
-        // 2. Status label — pengganti sementara StatusViewController karena gak pake storyboard
-        statusLabel.frame = CGRect(x: 20, y: 60, width: UIScreen.main.bounds.width - 40, height: 40)
+
+        let overlay = HandZoneOverlayView(frame: .zero)
+        self.view.addSubview(overlay)
+        self.handZoneOverlay = overlay
+
         statusLabel.textAlignment = .center
         statusLabel.textColor = .white
         statusLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
@@ -217,35 +225,22 @@ class ViewController: UIViewController {
         statusLabel.layer.masksToBounds = true
         statusLabel.text = "Ketuk layar untuk spawn hewan"
         self.view.addSubview(statusLabel)
-        
-        // 3. Pick Up Food button
-        pickUpButton.frame = CGRect(x: 40, y: UIScreen.main.bounds.height - 100, width: 140, height: 50)
-        pickUpButton.setTitle("Ambil Makanan", for: .normal)
-        pickUpButton.backgroundColor = .systemOrange
-        pickUpButton.setTitleColor(.white, for: .normal)
-        pickUpButton.layer.cornerRadius = 8
-        pickUpButton.addTarget(self, action: #selector(didTapPickUpFood(_:)), for: .touchUpInside)
-        self.view.addSubview(pickUpButton)
-        
-        // tambahin di loadView(), sebelah pickUpButton
-        let spawnFoodButton = UIButton(type: .system)
-        spawnFoodButton.frame = CGRect(x: 40, y: UIScreen.main.bounds.height - 160, width: 140, height: 40)
-        spawnFoodButton.setTitle("Spawn Food", for: .normal)
-        spawnFoodButton.backgroundColor = .systemPurple
-        spawnFoodButton.setTitleColor(.white, for: .normal)
-        spawnFoodButton.layer.cornerRadius = 8
-        spawnFoodButton.addTarget(self, action: #selector(didTapSpawnFood(_:)), for: .touchUpInside)
-        self.view.addSubview(spawnFoodButton)
-        
-        // 4. Feed Animal button
-        feedButton.frame = CGRect(x: UIScreen.main.bounds.width - 180, y: UIScreen.main.bounds.height - 100, width: 140, height: 50)
-        feedButton.setTitle("Kasih Makan", for: .normal)
-        feedButton.backgroundColor = .systemGreen
-        feedButton.setTitleColor(.white, for: .normal)
-        feedButton.layer.cornerRadius = 8
-        feedButton.isEnabled = false
-        feedButton.addTarget(self, action: #selector(didTapFeedAnimal(_:)), for: .touchUpInside)
-        self.view.addSubview(feedButton)
+
+        let spawnBtn = UIButton(type: .system)
+        spawnBtn.setTitle("Spawn Food", for: .normal)
+        spawnBtn.backgroundColor = .systemPurple
+        spawnBtn.setTitleColor(.white, for: .normal)
+        spawnBtn.layer.cornerRadius = 8
+        spawnBtn.addTarget(self, action: #selector(didTapSpawnFood(_:)), for: .touchUpInside)
+        self.view.addSubview(spawnBtn)
+        self.spawnFoodButton = spawnBtn
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        handZoneOverlay.frame = view.bounds
+        statusLabel.frame = CGRect(x: 20, y: 60, width: view.bounds.width - 40, height: 40)
+        spawnFoodButton.frame = CGRect(x: 40, y: view.bounds.height - 100, width: 140, height: 40)
     }
     
     // MARK: - Temporary Action Triggers
