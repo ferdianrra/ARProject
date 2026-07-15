@@ -16,8 +16,8 @@ struct MainButtonsView: View {
                 .frame(width: 75, height: 75)
                 .background(Color.blue.opacity(0.85))
                 .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .shadow(color: .blue.opacity(0.5), radius: 8, x: 0, y: 5)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    
             }
             
             Button(action: { currentState = .feedMode }) {
@@ -25,13 +25,13 @@ struct MainButtonsView: View {
                     Text("🍃")
                         .font(.system(size: 28))
                     Text("Feed")
-                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .font(.system(size: 14, weight: .heavy))
                 }
                 .frame(width: 75, height: 75)
-                .background(Color.green.opacity(0.85))
+                .background(Color.green)
                 .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .shadow(color: .green.opacity(0.5), radius: 8, x: 0, y: 5)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            
             }
             
             Button(action: { currentState = .resizeMode }) {
@@ -39,13 +39,12 @@ struct MainButtonsView: View {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 28, weight: .bold))
                     Text("Size")
-                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .font(.system(size: 14, weight: .heavy))
                 }
                 .frame(width: 75, height: 75)
                 .background(Color.orange.opacity(0.85))
                 .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .shadow(color: .orange.opacity(0.5), radius: 8, x: 0, y: 5)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             
             Button(action: {
@@ -57,13 +56,12 @@ struct MainButtonsView: View {
                     Image(systemName: "info.circle.fill")
                         .font(.system(size: 28, weight: .bold))
                     Text("Facts")
-                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .font(.system(size: 14, weight: .heavy))
                 }
                 .frame(width: 75, height: 75)
                 .background(manager.showFacts ? Color.purple.opacity(0.9) : Color.purple.opacity(0.5))
                 .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .shadow(color: .purple.opacity(0.5), radius: 8, x: 0, y: 5)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
         }
         .padding(.vertical, 15)
