@@ -5,11 +5,12 @@ import Combine
 
 
 class ARManager: ObservableObject {
-    @Published var distanceText: String = "Mencari objek..."
+    @Published var distanceText: String = "Find me!stop"
     @Published var currentAnimalName: String = ""
     @Published var isCoaching: Bool = true
     @Published var isTooFar: Bool = true
     @Published var showFacts: Bool = false
+    @Published var feedbackEvent: FeedbackEvent?
     @Published var isPlaced: Bool = false
     
     var subscriptions: [AnyCancellable] = [] 
@@ -29,6 +30,8 @@ class ARManager: ObservableObject {
     private var coloredButterflyTemplate: Entity?
     private var flowerHabitatTemplate: Entity?
     private var butterflyWingAudio: AudioFileResource?
+    private var positiveChimeAudio: AudioFileResource?
+    private var negativeBuzzAudio: AudioFileResource?
     
     private var anchorRef: AnchorEntity?
     private var auraTimer: Timer?
@@ -51,6 +54,38 @@ class ARManager: ObservableObject {
     
     func toggleFacts(show: Bool) {
         factController.toggleFacts(show: show, animal: animalEntity)
+    }
+
+    /// Single shared entry point for banner + haptic + sound feedback, so
+    /// every mode speaks the same "language" instead of rolling its own.
+    /// Pass `message: nil` for minor actions that shouldn't pop a banner
+    /// (e.g. a toggle), and `sound: nil` when a haptic tick is enough.
+    func triggerFeedback(message: String? = nil, tone: FeedbackTone, haptic: FeedbackHaptic, sound: FeedbackSound? = nil) {
+        let event = FeedbackEvent(message: message, tone: tone, haptic: haptic, sound: sound)
+        DispatchQueue.main.async {
+            self.feedbackEvent = event
+        }
+        playFeedbackSound(sound)
+    }
+
+    /// Feedback chimes/buzzes are UI cues, not diegetic world sound, so they
+    /// play on the camera anchor with an AmbientAudioComponent (no
+    /// distance/direction attenuation) rather than spatialized like the
+    /// per-spot butterfly wing audio.
+    private func playFeedbackSound(_ sound: FeedbackSound?) {
+        guard let sound, let camera = cameraAnchor else { return }
+
+        let resource: AudioFileResource?
+        switch sound {
+        case .positiveChime: resource = positiveChimeAudio
+        case .negativeBuzz: resource = negativeBuzzAudio
+        }
+
+        guard let resource else { return }
+        if !camera.components.has(AmbientAudioComponent.self) {
+            camera.components.set(AmbientAudioComponent())
+        }
+        camera.playAudio(resource)
     }
     
     func spawnCube(name animalName: String, on pAnchor: AnchorEntity) {
@@ -84,6 +119,19 @@ class ARManager: ObservableObject {
         } catch {
             print("error load butterflyWing.wav: \(error)")
         }
+
+        do {
+            self.positiveChimeAudio = try AudioFileResource.load(named: "positveChime.wav")
+        } catch {
+            print("error load positveChime.wav: \(error)")
+        }
+
+        do {
+            self.negativeBuzzAudio = try AudioFileResource.load(named: "negativeBuzz.mp3")
+        } catch {
+            print("error load negativeBuzz.mp3: \(error)")
+        }
+
     }
     
     func handleTap() {
@@ -189,9 +237,10 @@ class ARManager: ObservableObject {
             if distance < radiusThreshold {
                 if activeSpot == nil || activeSpot?.id == spot.id {
                     if !spot.isNear {
+                        let isFirstDiscovery = !spot.hasVisited
                         spot.isNear = true
                         spot.hasVisited = true
-                        
+
                         spot.blackButterfly?.isEnabled = false
                         
                         self.habitatController.animateCircleScale(for: spot, to: 1.0)
@@ -206,6 +255,10 @@ class ARManager: ObservableObject {
 
                         if let wingAudio = self.butterflyWingAudio {
                             spot.wingAudioController = spot.activeButterfly?.playAudio(wingAudio)
+                        }
+
+                        if isFirstDiscovery {
+                            self.triggerFeedback(tone: .positive, haptic: .success, sound: .positiveChime)
                         }
                     }
                 }

@@ -163,6 +163,28 @@ struct ContentView : View {
                     .zIndex(3)
                     .transition(.move(edge: .bottom))
             }
+
+            if let event = manager.feedbackEvent, event.message != nil {
+                VStack {
+                    Spacer()
+                    FeedbackToastView(event: event) {
+                        withAnimation {
+                            manager.feedbackEvent = nil
+                        }
+                    }
+                    .padding(.bottom, 220)
+                }
+                .zIndex(4)
+                .allowsHitTesting(false)
+            }
+        }
+        .sensoryFeedback(trigger: manager.feedbackEvent) { _, newValue in
+            guard let newValue else { return nil }
+            switch newValue.haptic {
+            case .success: return .success
+            case .warning: return .warning
+            case .light: return .selection
+            }
         }
     }
 }
