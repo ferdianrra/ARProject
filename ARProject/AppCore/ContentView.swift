@@ -69,7 +69,11 @@ struct ContentView : View {
                 manager.toggleFacts(show: show)
             }
             .onChange(of: manager.isTooFar) { tooFar in
-                if !tooFar && panelState == .hidden {
+                if tooFar {
+                    withAnimation {
+                        panelState = .mainButtons
+                    }
+                } else if !tooFar && panelState == .hidden {
                     withAnimation {
                         panelState = .mainButtons
                     }

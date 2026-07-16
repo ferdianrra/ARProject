@@ -5,36 +5,54 @@ import UIKit
 class LifeCycleController {
     
     func changePhase(to phase: Int, manager: ARManager) {
-        guard let anchor = manager.cameraAnchor?.parent as? AnchorEntity ?? manager.animalEntity?.parent as? AnchorEntity else { return }
+        let anchor = manager.parentContainer
         
         var assetName = ""
         switch phase {
-        case 1: assetName = "butterfly_egg.usdc"
-        case 2: assetName = "butterfly_ulat.usdz"
-        case 3: assetName = "kepompong.usdz"
+        case 1: assetName = "butterfly_idle.usdz"
+        case 2: assetName = "Caterpillar_and_leaf.usdz"
+        case 3: assetName = "Pupa_of_Graphium_agamemnon.usdz"
         case 4: assetName = "butterfly_idle.usdz"
-        default: assetName = "butterfly_egg.usdc"
+        default: assetName = "butterfly_idle.usdz"
         }
         
         if manager.currentAnimalName != assetName {
-            spawnAnimal(name: assetName, on: anchor, manager: manager)
+            spawnAnimal(name: assetName, phase: phase, on: anchor, manager: manager)
         }
     }
     
     func exitLifeCycle(manager: ARManager) {
-        guard let anchor = manager.cameraAnchor?.parent as? AnchorEntity ?? manager.animalEntity?.parent as? AnchorEntity else { return }
+        let anchor = manager.parentContainer
         
         let assetName = "butterfly.usdz"
         if manager.currentAnimalName != assetName {
-            // We need a slightly modified spawn for exiting back to wandering
-            spawnAnimal(name: assetName, on: anchor, manager: manager, forceWander: true)
+            if let spot = manager.spots.first(where: { $0.activeButterfly != nil }) {
+                if let existing = spot.activeButterfly {
+                    existing.removeFromParent()
+                }
+                
+                if let template = manager.coloredButterflyTemplate {
+                    manager.wanderController.spawnButterfly(at: spot, template: template, anchor: anchor)
+                } else {
+                    spawnAnimal(name: assetName, on: anchor, manager: manager, forceWander: true)
+                }
+                
+                if let wingAudio = manager.butterflyWingAudio {
+                    spot.wingAudioController = spot.activeButterfly?.playAudio(wingAudio)
+                }
+            } else {
+                spawnAnimal(name: assetName, on: anchor, manager: manager, forceWander: true)
+            }
+            
+            manager.currentAnimalName = assetName
         }
     }
     
-    private func spawnAnimal(name animalName: String, on pAnchor: AnchorEntity, manager: ARManager, forceWander: Bool = false) {
+    private func spawnAnimal(name animalName: String, phase: Int = 4, on pAnchor: Entity, manager: ARManager, forceWander: Bool = false) {
         guard let loadedAnimal = try? Entity.load(named: animalName) else { return }
+        manager.currentAnimalName = animalName
         
-        let targetScale: Float = animalName == "butterfly_idle.usdz" ? 0.001 : 0.003
+        let targetScale: Float = (animalName == "butterfly_idle.usdz" || animalName == "butterfly.usdz") ? 0.001 : 0.003
         loadedAnimal.scale = [0, 0, 0]
         
         // Ensure the loaded animal has an InputTargetComponent to receive gestures
@@ -45,8 +63,8 @@ class LifeCycleController {
             loadedAnimal.components.set(InputTargetComponent())
         }
         
-        // Remove existing animal if any
-        if let spot = manager.spots.first(where: { $0.isNear }) {
+        // Find the spot that currently holds the butterfly, even if we just walked away
+        if let spot = manager.spots.first(where: { $0.activeButterfly != nil }) ?? manager.spots.first(where: { $0.isNear }) {
             manager.wanderController.stopWandering(at: spot)
             
             if let existing = spot.activeButterfly {
@@ -58,7 +76,7 @@ class LifeCycleController {
             
             // Snap the lifecycle model exactly to the center of the spot so it doesn't wander
             // (If forceWander is true, it will start wandering AFTER the bounce animation finishes)
-            loadedAnimal.position = spot.center
+            loadedAnimal.position = SIMD3<Float>(spot.center.x, 0.35, spot.center.z)
             
         } else {
             pAnchor.addChild(loadedAnimal)
@@ -71,12 +89,12 @@ class LifeCycleController {
         if let cam = manager.cameraAnchor {
             var camPosInAnchorSpace = cam.position(relativeTo: pAnchor)
             camPosInAnchorSpace.y = 0
-            loadedAnimal.look(at: camPosInAnchorSpace, from: [0, 0, 0], relativeTo: pAnchor)
+            loadedAnimal.look(at: camPosInAnchorSpace, from: loadedAnimal.position, relativeTo: pAnchor)
         }
         manager.baseRotation = loadedAnimal.orientation
         
         // Add 3D Text Label for the Phase
-        let phaseName = getPhaseName(from: animalName)
+        let phaseName = forceWander ? "" : getPhaseName(for: phase)
         let textEntity = createPhaseText(text: phaseName)
         let inverseScale = 1.0 / targetScale
         textEntity.scale = SIMD3<Float>(repeating: inverseScale)
@@ -99,13 +117,11 @@ class LifeCycleController {
                 timer.invalidate()
                 loadedAnimal.scale = SIMD3<Float>(repeating: targetScale)
                 
-                DispatchQueue.main.async {
-                    manager.currentAnimalName = animalName
-                }
+                // Removed async currentAnimalName update (moved to start of function)
                 
                 // If it's supposed to wander, start wandering AFTER the bounce completes
-                // so we don't cancel RealityKit's internal .move() animation!
-                if forceWander, let spot = manager.spots.first(where: { $0.isNear }) {
+                // We use the spot we found above, not necessarily one that is 'isNear'
+                if forceWander, let spot = manager.spots.first(where: { $0.activeButterfly != nil }) {
                     manager.wanderController.startWandering(loadedAnimal, at: spot, anchor: pAnchor)
                 }
             } else {
@@ -116,13 +132,13 @@ class LifeCycleController {
         }
     }
     
-    private func getPhaseName(from assetName: String) -> String {
-        switch assetName {
-        case "butterfly_egg.usdc": return "Phase 1: Egg"
-        case "butterfly_ulat.usdz": return "Phase 2: Caterpillar"
-        case "kepompong.usdz": return "Phase 3: Chrysalis"
-        case "butterfly_idle.usdz": return "Phase 4: Butterfly"
-        default: return "Unknown Phase"
+    private func getPhaseName(for phase: Int) -> String {
+        switch phase {
+        case 1: return "Phase 1: Egg"
+        case 2: return "Phase 2: Caterpillar"
+        case 3: return "Phase 3: Chrysalis"
+        case 4: return "Phase 4: Butterfly"
+        default: return ""
         }
     }
     

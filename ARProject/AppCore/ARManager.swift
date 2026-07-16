@@ -41,9 +41,9 @@ class ARManager: ObservableObject {
     private var isSpawningAnimal = false
     private var distanceTimer: Timer?
     
-    private var coloredButterflyTemplate: Entity?
+    var coloredButterflyTemplate: Entity?
     private var flowerHabitatTemplate: Entity?
-    private var butterflyWingAudio: AudioFileResource?
+    var butterflyWingAudio: AudioFileResource?
     private var positiveChimeAudio: AudioFileResource?
     private var negativeBuzzAudio: AudioFileResource?
     
