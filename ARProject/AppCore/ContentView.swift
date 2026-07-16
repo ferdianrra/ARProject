@@ -158,10 +158,42 @@ struct ContentView : View {
                 .zIndex(2)
             }
             
-            if !manager.isCoaching && (!manager.isTooFar || !manager.isPlaced) {
+            if !manager.isCoaching && (!manager.isTooFar || !manager.isPlaced) && !manager.isFeedingActive {
                 DynamicPanelView(currentState: $panelState, manager: manager)
                     .zIndex(3)
                     .transition(.move(edge: .bottom))
+            }
+            
+            if manager.isFeedingActive {
+                HandZoneOverlayRepresentable(state: manager.feedingOverlayState)
+                    .allowsHitTesting(false)
+                    .edgesIgnoringSafeArea(.all)
+                    .zIndex(4)
+                
+                VStack {
+                    HStack {
+                        Button(action: {
+                            manager.stopFeedingMode()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 36))
+                                .foregroundColor(.white)
+                                .background(Circle().fill(Color.black.opacity(0.5)))
+                        }
+                        .padding(.leading, 20)
+                        .padding(.top, 24)
+                        
+                        Spacer()
+                    }
+                    Spacer()
+                }
+                .zIndex(5)
+            }
+        }
+        .onChange(of: panelState) { oldVal, newVal in
+            if newVal == .feedMode {
+                manager.startFeedingMode()
+                panelState = .mainButtons
             }
         }
     }

@@ -3,6 +3,15 @@ import RealityKit
 import ARKit
 import Combine
 
+enum FeedingState {
+    case idle
+    case carryingFood(Entity)
+}
+
+enum FeedingOverlayState {
+    case reaching
+    case grabbing
+}
 
 class ARManager: ObservableObject {
     @Published var distanceText: String = "Mencari objek..."
@@ -11,6 +20,11 @@ class ARManager: ObservableObject {
     @Published var isTooFar: Bool = true
     @Published var showFacts: Bool = false
     @Published var isPlaced: Bool = false
+    
+    @Published var isFeedingActive: Bool = false
+    @Published var feedingOverlayState: FeedingOverlayState = .reaching
+    var feedingState: FeedingState = .idle
+    var spawnedFoodEntities: [Entity] = []
     
     var subscriptions: [AnyCancellable] = [] 
     var eventSubscriptions: [EventSubscription] = []
@@ -145,6 +159,121 @@ class ARManager: ObservableObject {
         }
     }
     
+    func startFeedingMode() {
+        guard let spot = spots.first(where: { $0.isNear }), isPlaced else { return }
+        
+        cleanLeftoverFood()
+        
+        isFeedingActive = true
+        feedingOverlayState = .reaching
+        feedingState = .idle
+        
+        let mesh = MeshResource.generateSphere(radius: 0.05)
+        var material = PhysicallyBasedMaterial()
+        material.baseColor = .init(tint: .orange)
+        material.roughness = 0.2
+        material.metallic = 0.0
+        
+        for _ in 0..<3 {
+            let angle = Float.random(in: 0..<(2 * .pi))
+            let radius = Float.random(in: 0.4...0.8)
+            let food = ModelEntity(mesh: mesh, materials: [material])
+            food.name = "food"
+            food.position = [spot.center.x + radius * cos(angle), 0.05, spot.center.z + radius * sin(angle)]
+            parentContainer.addChild(food)
+            spawnedFoodEntities.append(food)
+        }
+        
+        self.distanceText = "Walk close to a food sphere to pick it up!"
+    }
+    
+    func stopFeedingMode() {
+        isFeedingActive = false
+        cleanLeftoverFood()
+        feedingState = .idle
+        self.distanceText = ""
+    }
+    
+    private func cleanLeftoverFood() {
+        for food in spawnedFoodEntities {
+            food.removeFromParent()
+        }
+        spawnedFoodEntities.removeAll()
+        
+        if case .carryingFood(let food) = feedingState {
+            food.removeFromParent()
+        }
+    }
+    
+    private func updateFeedingGameplay() {
+        guard let camAnchor = cameraAnchor, let spot = spots.first(where: { $0.isNear }) else { return }
+        let cameraPos = camAnchor.position(relativeTo: nil)
+        let cameraFlat = SIMD2<Float>(cameraPos.x, cameraPos.z)
+        
+        switch feedingState {
+        case .idle:
+            var pickedUpFood: Entity? = nil
+            for food in spawnedFoodEntities {
+                let foodPos = food.position(relativeTo: nil)
+                let foodFlat = SIMD2<Float>(foodPos.x, foodPos.z)
+                let dist = simd_distance(cameraFlat, foodFlat)
+                if dist < 0.35 {
+                    pickedUpFood = food
+                    break
+                }
+            }
+            
+            if let food = pickedUpFood {
+                food.removeFromParent()
+                if let index = spawnedFoodEntities.firstIndex(of: food) {
+                    spawnedFoodEntities.remove(at: index)
+                }
+                
+                camAnchor.addChild(food)
+                food.position = [0, -0.04, -0.35]
+                
+                feedingState = .carryingFood(food)
+                DispatchQueue.main.async {
+                    self.feedingOverlayState = .grabbing
+                    self.distanceText = "Food picked up! Walk close to the butterfly."
+                }
+                
+                #if os(iOS)
+                let feedback = UIImpactFeedbackGenerator(style: .medium)
+                feedback.prepare()
+                feedback.impactOccurred()
+                #endif
+            }
+            
+        case .carryingFood(let food):
+            let spotWorldPos = parentContainer.convert(position: spot.center, to: nil)
+            let spotFlat = SIMD2<Float>(spotWorldPos.x, spotWorldPos.z)
+            let dist = simd_distance(cameraFlat, spotFlat)
+            if dist < 0.15 {
+                food.removeFromParent()
+                feedingState = .idle
+                
+                DispatchQueue.main.async {
+                    self.feedingOverlayState = .reaching
+                    if self.spawnedFoodEntities.isEmpty {
+                        self.distanceText = "Yum! Butterfly is full! 🦋✨"
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            self.stopFeedingMode()
+                        }
+                    } else {
+                        self.distanceText = "Yum! Find more food on the floor!"
+                    }
+                }
+                
+                #if os(iOS)
+                let feedback = UINotificationFeedbackGenerator()
+                feedback.prepare()
+                feedback.notificationOccurred(.success)
+                #endif
+            }
+        }
+    }
+    
     func updateScene() {
         guard let camAnchor = cameraAnchor,
               let anchor = anchorRef else { return }
@@ -163,11 +292,18 @@ class ARManager: ObservableObject {
             }
             return
         }
+        
+        if isFeedingActive {
+            if spots.first(where: { $0.isNear }) == nil {
+                stopFeedingMode()
+                return
+            }
+            updateFeedingGameplay()
+        }
 
         let cameraPosition = camAnchor.position(relativeTo: nil)
         let cameraFlat = SIMD2<Float>(cameraPosition.x, cameraPosition.z)
         
-        // Make sticky notes always face the user
         if self.showFacts {
             factController.updateBillboards(cameraAnchor: camAnchor, animal: self.animalEntity)
         }
@@ -223,8 +359,10 @@ class ARManager: ObservableObject {
         }
         
         if let currentActive = spots.first(where: { $0.isNear }) {
-            DispatchQueue.main.async {
-                self.isTooFar = false
+            if !isFeedingActive {
+                DispatchQueue.main.async {
+                    self.isTooFar = false
+                }
             }
             for line in habitatController.lineEntities {
                 line.isEnabled = false
@@ -246,8 +384,10 @@ class ARManager: ObservableObject {
                 }
             }
         } else {
-            DispatchQueue.main.async {
-                self.isTooFar = true
+            if !isFeedingActive {
+                DispatchQueue.main.async {
+                    self.isTooFar = true
+                }
             }
             for line in habitatController.lineEntities {
                 line.isEnabled = true
@@ -267,7 +407,9 @@ class ARManager: ObservableObject {
             }
         }
         
-        self.distanceText = String(format: "Jarak ke titik terdekat: %.2f meter", closestDistance)
+        if !isFeedingActive {
+            self.distanceText = String(format: "Jarak ke titik terdekat: %.2f meter", closestDistance)
+        }
     }
     
     deinit {
