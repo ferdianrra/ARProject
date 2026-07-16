@@ -143,7 +143,7 @@ struct ContentView : View {
                     .zIndex(1)
             } else if manager.isTooFar && manager.isPlaced {
                 VStack {
-                    Text("Get closer to play! 🚶‍♂️")
+                    Text("Get closer to play!")
                         .font(.system(size: 24, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .padding()
