@@ -52,6 +52,7 @@ struct MainButtonsView: View {
                 withAnimation {
                     manager.showFacts.toggle()
                 }
+                manager.triggerFeedback(tone: .positive, haptic: .light)
             }) {
                 VStack {
                     Image(systemName: "info.circle.fill")
