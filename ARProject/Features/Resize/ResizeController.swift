@@ -10,7 +10,7 @@ class ResizeController {
     }
     
     func enterResizeMode(manager: ARManager) {
-        guard let anchor = manager.cameraAnchor?.parent as? AnchorEntity ?? manager.animalEntity?.parent as? AnchorEntity else { return }
+        let anchor = manager.parentContainer
         
         let assetName = "butterfly_idle.usdz"
         if manager.currentAnimalName != assetName {
@@ -19,16 +19,34 @@ class ResizeController {
     }
     
     func exitResizeMode(manager: ARManager) {
-        guard let anchor = manager.cameraAnchor?.parent as? AnchorEntity ?? manager.animalEntity?.parent as? AnchorEntity else { return }
+        let anchor = manager.parentContainer
         
         let assetName = "butterfly.usdz"
         if manager.currentAnimalName != assetName {
-            spawnAnimal(name: assetName, on: anchor, manager: manager, forceWander: true)
+            if let spot = manager.spots.first(where: { $0.activeButterfly != nil }) {
+                if let existing = spot.activeButterfly {
+                    existing.removeFromParent()
+                }
+                
+                if let template = manager.coloredButterflyTemplate {
+                    manager.wanderController.spawnButterfly(at: spot, template: template, anchor: anchor)
+                } else {
+                    spawnAnimal(name: assetName, on: anchor, manager: manager, forceWander: true)
+                }
+                
+                if let wingAudio = manager.butterflyWingAudio {
+                    spot.wingAudioController = spot.activeButterfly?.playAudio(wingAudio)
+                }
+            } else {
+                spawnAnimal(name: assetName, on: anchor, manager: manager, forceWander: true)
+            }
+            
+            manager.currentAnimalName = assetName
         }
     }
     
     // Shared spawn helper similar to LifecycleController
-    private func spawnAnimal(name animalName: String, on pAnchor: AnchorEntity, manager: ARManager, forceWander: Bool = false) {
+    private func spawnAnimal(name animalName: String, on pAnchor: Entity, manager: ARManager, forceWander: Bool = false) {
         guard let loadedAnimal = try? Entity.load(named: animalName) else { return }
         
         // When entering resize mode, we preserve the current UI scale
@@ -42,7 +60,7 @@ class ResizeController {
             loadedAnimal.components.set(InputTargetComponent())
         }
         
-        if let spot = manager.spots.first(where: { $0.isNear }) {
+        if let spot = manager.spots.first(where: { $0.activeButterfly != nil }) ?? manager.spots.first(where: { $0.isNear }) {
             manager.wanderController.stopWandering(at: spot)
             
             if let existing = spot.activeButterfly {
@@ -52,7 +70,7 @@ class ResizeController {
             pAnchor.addChild(loadedAnimal)
             spot.activeButterfly = loadedAnimal
             
-            loadedAnimal.position = spot.center
+            loadedAnimal.position = SIMD3<Float>(spot.center.x, 0.35, spot.center.z)
             
             if forceWander {
                 manager.wanderController.startWandering(loadedAnimal, at: spot, anchor: pAnchor)
@@ -68,7 +86,7 @@ class ResizeController {
         if let cam = manager.cameraAnchor {
             var camPosInAnchorSpace = cam.position(relativeTo: pAnchor)
             camPosInAnchorSpace.y = 0
-            loadedAnimal.look(at: camPosInAnchorSpace, from: [0, 0, 0], relativeTo: pAnchor)
+            loadedAnimal.look(at: camPosInAnchorSpace, from: loadedAnimal.position, relativeTo: pAnchor)
         }
         manager.baseRotation = loadedAnimal.orientation
         manager.currentAnimalName = animalName
