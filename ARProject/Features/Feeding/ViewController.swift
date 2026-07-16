@@ -157,6 +157,8 @@ class ViewController: UIViewController {
     
     // MARK: - Building the UI in code (no storyboard)
     
+    var closeButton: UIButton!
+    
     /// Because `loadView()` is overridden, UIKit will NOT load a .xib/storyboard
     /// for this view controller — this method is entirely responsible for
     /// creating `self.view` and everything in it.
@@ -187,6 +189,15 @@ class ViewController: UIViewController {
         spawnBtn.addTarget(self, action: #selector(didTapSpawnFood(_:)), for: .touchUpInside)
         self.view.addSubview(spawnBtn)
         self.spawnFoodButton = spawnBtn
+        
+        let closeBtn = UIButton(type: .system)
+        closeBtn.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+        closeBtn.tintColor = .white
+        closeBtn.contentHorizontalAlignment = .fill
+        closeBtn.contentVerticalAlignment = .fill
+        closeBtn.addTarget(self, action: #selector(didTapClose(_:)), for: .touchUpInside)
+        self.view.addSubview(closeBtn)
+        self.closeButton = closeBtn
     }
 
     override func viewDidLayoutSubviews() {
@@ -194,6 +205,10 @@ class ViewController: UIViewController {
         handZoneOverlay.frame = view.bounds
         statusLabel.frame = CGRect(x: 20, y: 60, width: view.bounds.width - 40, height: 40)
         spawnFoodButton.frame = CGRect(x: 40, y: view.bounds.height - 100, width: 140, height: 40)
+        closeButton.frame = CGRect(x: 20, y: 60, width: 44, height: 44)
+    }
+    
+    @objc func didTapClose(_ sender: UIButton) {
+        self.dismiss(animated: true, completion: nil)
     }
 }
-

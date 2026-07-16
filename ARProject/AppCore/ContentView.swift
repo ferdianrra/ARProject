@@ -158,32 +158,42 @@ struct ContentView : View {
                 .zIndex(2)
             }
             
-            if !manager.isCoaching && (!manager.isTooFar || !manager.isPlaced) {
+            if !manager.isCoaching && (!manager.isTooFar || !manager.isPlaced) && !manager.isFeedingActive {
                 DynamicPanelView(currentState: $panelState, manager: manager)
                     .zIndex(3)
                     .transition(.move(edge: .bottom))
             }
-
-            if let event = manager.feedbackEvent, event.message != nil {
+            
+            if manager.isFeedingActive {
+                HandZoneOverlayRepresentable(state: manager.feedingOverlayState)
+                    .allowsHitTesting(false)
+                    .edgesIgnoringSafeArea(.all)
+                    .zIndex(4)
+                
                 VStack {
-                    Spacer()
-                    FeedbackToastView(event: event) {
-                        withAnimation {
-                            manager.feedbackEvent = nil
+                    HStack {
+                        Button(action: {
+                            manager.stopFeedingMode()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 36))
+                                .foregroundColor(.white)
+                                .background(Circle().fill(Color.black.opacity(0.5)))
                         }
+                        .padding(.leading, 20)
+                        .padding(.top, 24)
+                        
+                        Spacer()
                     }
-                    .padding(.bottom, 220)
+                    Spacer()
                 }
-                .zIndex(4)
-                .allowsHitTesting(false)
+                .zIndex(5)
             }
         }
-        .sensoryFeedback(trigger: manager.feedbackEvent) { _, newValue in
-            guard let newValue else { return nil }
-            switch newValue.haptic {
-            case .success: return .success
-            case .warning: return .warning
-            case .light: return .selection
+        .onChange(of: panelState) { oldVal, newVal in
+            if newVal == .feedMode {
+                manager.startFeedingMode()
+                panelState = .mainButtons
             }
         }
     }
