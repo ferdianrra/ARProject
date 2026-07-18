@@ -36,9 +36,10 @@ struct LifeCycleModeView: View {
                 .padding(.horizontal, 8)
                 
                 Slider(value: $lifeCyclePhase, in: 1...4, step: 1)
-                    .accentColor(.blue)
-                    .onChange(of: lifeCyclePhase) { phase in
+                    .tint(.blue)
+                    .onChange(of: lifeCyclePhase) { _, phase in
                         manager.lifeCycleController.changePhase(to: Int(phase), manager: manager)
+                        manager.triggerFeedback(message: phaseMessage(for: Int(phase)), tone: .positive, haptic: .light)
                     }
             }
             
@@ -53,6 +54,15 @@ struct LifeCycleModeView: View {
         }
         .onDisappear {
             manager.lifeCycleController.exitLifeCycle(manager: manager)
+        }
+    }
+
+    private func phaseMessage(for phase: Int) -> String {
+        switch phase {
+        case 1: return "🥚 It's an egg!"
+        case 2: return "🐛 It's a caterpillar now!"
+        case 3: return "🛖 It's forming a chrysalis!"
+        default: return "🦋 It's a butterfly!"
         }
     }
 }

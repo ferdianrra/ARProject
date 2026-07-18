@@ -7,19 +7,19 @@ class HabitatController {
     var lineEntities: [ModelEntity] = []
     var auraPhase: Float = 0
     
-    func setupHabitats(spots: [ARSpot], planeAnchor: AnchorEntity) {
+    func setupHabitats(spots: [ARSpot], planeAnchor: Entity) {
         let circleMesh = MeshResource.generateCircle(radius: 1.5)
-        var blueMaterial = PhysicallyBasedMaterial()
-        blueMaterial.baseColor = .init(tint: .black)
-        blueMaterial.emissiveColor = .init(color: .init(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0))
-        blueMaterial.emissiveIntensity = 3.0
-        blueMaterial.roughness = .init(floatLiteral: 0.1)
-        blueMaterial.metallic = .init(floatLiteral: 0.0)
-        blueMaterial.faceCulling = .none
-        blueMaterial.blending = .transparent(opacity: .init(floatLiteral: 0.85))
+        var brownMaterial = PhysicallyBasedMaterial()
+        brownMaterial.baseColor = .init(tint: .init(red: 0.5, green: 0.28, blue: 0.12, alpha: 1.0))
+        brownMaterial.emissiveColor = .init(color: .init(red: 0.5, green: 0.28, blue: 0.12, alpha: 1.0))
+        brownMaterial.emissiveIntensity = 2.0
+        brownMaterial.roughness = .init(floatLiteral: 0.1)
+        brownMaterial.metallic = .init(floatLiteral: 0.0)
+        brownMaterial.faceCulling = .none
+        brownMaterial.blending = .transparent(opacity: .init(floatLiteral: 0.85))
         
         for spot in spots {
-            let circle = ModelEntity(mesh: circleMesh, materials: [blueMaterial])
+            let circle = ModelEntity(mesh: circleMesh, materials: [brownMaterial])
             circle.position = [spot.center.x, 0.02, spot.center.z]
             circle.scale = [0.25, 1.0, 0.25]
             planeAnchor.addChild(circle)
@@ -31,10 +31,10 @@ class HabitatController {
         let zLineMesh = MeshResource.generateBox(width: 0.005, height: 0.002, depth: 1.2)
         
         let lines = [
-            ModelEntity(mesh: xLineMesh, materials: [blueMaterial]),
-            ModelEntity(mesh: zLineMesh, materials: [blueMaterial]),
-            ModelEntity(mesh: xLineMesh, materials: [blueMaterial]),
-            ModelEntity(mesh: zLineMesh, materials: [blueMaterial])
+            ModelEntity(mesh: xLineMesh, materials: [brownMaterial]),
+            ModelEntity(mesh: zLineMesh, materials: [brownMaterial]),
+            ModelEntity(mesh: xLineMesh, materials: [brownMaterial]),
+            ModelEntity(mesh: zLineMesh, materials: [brownMaterial])
         ]
         
         lines[0].position = [0, 0.02, -0.6]
@@ -53,9 +53,9 @@ class HabitatController {
         let pulse = (sin(self.auraPhase) + 1) / 2
         
         var mat = PhysicallyBasedMaterial()
-        mat.baseColor = .init(tint: .black)
-        mat.emissiveColor = .init(color: .init(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0))
-        mat.emissiveIntensity = 2.0 + pulse * 3.0
+        mat.baseColor = .init(tint: .init(red: 0.5, green: 0.28, blue: 0.12, alpha: 1.0))
+        mat.emissiveColor = .init(color: .init(red: 0.5, green: 0.28, blue: 0.12, alpha: 1.0))
+        mat.emissiveIntensity = 1.0 + pulse * 2.0
         mat.roughness = .init(floatLiteral: 0.1)
         mat.metallic = .init(floatLiteral: 0.0)
         mat.faceCulling = .none
@@ -76,7 +76,7 @@ class HabitatController {
         circle.move(to: targetTransform, relativeTo: circle.parent, duration: 0.5, timingFunction: .easeInOut)
     }
     
-    func setFlowerHabitat(at spot: ARSpot, count: Int, scale: Float, scatteringRadius: Float, template: Entity?, anchor: AnchorEntity) {
+    func setFlowerHabitat(at spot: ARSpot, count: Int, scale: Float, scatteringRadius: Float, template: Entity?, anchor: Entity) {
         guard let template = template else { return }
 
         for flower in spot.scatteredFlowers {
