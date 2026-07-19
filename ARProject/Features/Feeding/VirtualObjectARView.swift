@@ -50,7 +50,7 @@ class VirtualObjectARView: ARSCNView {
 
     // MARK: - Spawning Food Around the Animal
 
-    /// Spawns 3 food dummy objects scattered evenly around the existing animal node.
+    /// Spawns 3 food models scattered evenly around the existing animal node.
     ///
     /// Uses polar coordinates (an angle + a radius) rather than independent random X/Z offsets — picking a random angle around a full circle and a random radius gives an even scatter around the animal. (Picking random X and Z independently instead tends to cluster points near the corners/center depending on the shape of the sampling area — polar sampling around a circle avoids that.)
     func spawnFoodAroundAnimal() {
@@ -63,25 +63,23 @@ class VirtualObjectARView: ARSCNView {
         // Get the animal's current world position matrix
         let animalTransform = animalNode.simdWorldTransform
 
-        for _ in 1...3 {
-            // Create a unique food dummy object
-            let dummyFood = VirtualObject(dummyShape: .foodSphere, color: .orange, name: "food")
+        for foodKind in VirtualObject.FoodKind.allCases {
+            let foodObject = VirtualObject(foodKind: foodKind)
 
             let angle = Float.random(in: 0..<(2 * .pi))
             let radius = Float.random(in: 0.3...0.6)
 
             // Copy the animal's matrix and apply a polar offset to X/Z.
-            //    (This copies rotation/scale from the animal too, which is harmless here since these are simple dummy shapes, but worth remembering once you swap in real oriented models.)
             var foodTransform = animalTransform
             foodTransform.columns.3.x += radius * cos(angle)
             foodTransform.columns.3.z += radius * sin(angle)
             foodTransform.columns.3.y = animalTransform.columns.3.y + 0.02
 
-            dummyFood.simdWorldTransform = foodTransform
+            foodObject.simdWorldTransform = foodTransform
 
-            self.scene.rootNode.addChildNode(dummyFood)
-            self.addOrUpdateAnchor(for: dummyFood)
-            allSpawnedObjects.append(dummyFood)
+            self.scene.rootNode.addChildNode(foodObject)
+            self.addOrUpdateAnchor(for: foodObject)
+            allSpawnedObjects.append(foodObject)
         }
     }
 }

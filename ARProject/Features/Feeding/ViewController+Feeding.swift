@@ -117,15 +117,14 @@ extension ViewController {
     private func performFeed() {
         guard case .carryingFood(let food) = feedingState else { return }
 
-        // TODO: replace this coin-flip with real logic (e.g. specific foods
-        // the animal likes/dislikes) once that gameplay rule is decided.
-        let animalAccepts = Bool.random()
+        let foodKind = (food as? VirtualObject)?.foodKind
+        let animalAccepts = foodKind?.isCorrectForButterfly == true
 
         if animalAccepts {
-            statusLabel.text = "Hewan suka makanannya! 🐾"
+            statusLabel.text = "Kupu-kupu suka flower!"
             food.removeFromParentNode()
         } else {
-            statusLabel.text = "Hewan menolak makanannya 😾"
+            statusLabel.text = "Kupu-kupu menolak makanan itu"
             flingAwayAndRemove(food)
         }
 
