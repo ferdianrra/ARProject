@@ -10,6 +10,7 @@ enum PanelState {
     case mainButtons
     case resizeMode
     case lifeCycleMode
+    case feedingMode
 }
 
 struct DynamicPanelView: View {
@@ -35,6 +36,10 @@ struct DynamicPanelView: View {
                     
                 case .lifeCycleMode:
                     LifeCycleModeView(currentState: $currentState, manager: manager)
+                    //TODO: - ini masih dummy
+                case .feedingMode:
+                    LifeCycleModeView(currentState: $currentState, manager: manager)
+                }
                 }
             }
             .padding(.horizontal, 20)
@@ -60,7 +65,7 @@ struct DynamicPanelView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.7, blendDuration: 0), value: currentState)
         }
     }
-}
+
 
 #Preview {
     ZStack {
