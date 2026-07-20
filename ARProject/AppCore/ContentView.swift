@@ -145,16 +145,27 @@ struct ContentView : View {
                 CoachingOverlayView()
                     .transition(.opacity)
                     .zIndex(1)
-            } else if manager.isTooFar && manager.isPlaced {
+            } else if manager.isPlaced && !manager.isFeedingActive {
                 VStack {
-                    Text("Get closer to play! 🚶‍♂️")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Color.orange.opacity(0.85))
-                        .cornerRadius(20)
-                        .shadow(radius: 10)
-                        .padding(.top, 50)
+                    if manager.isTooFar {
+                        Text("Get closer to play!")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.orange.opacity(0.85))
+                            .cornerRadius(20)
+                            .shadow(radius: 10)
+                            .padding(.top, 50)
+                    } else {
+                        Text("Explore the animal! Walk out of the arena to exit.")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.orange.opacity(0.85))
+                            .cornerRadius(20)
+                            .shadow(radius: 10)
+                            .padding(.top, 50)
+                    }
                     Spacer()
                 }
                 .transition(.opacity)
@@ -162,7 +173,7 @@ struct ContentView : View {
                 .zIndex(2)
             }
             
-            if !manager.isCoaching && (!manager.isTooFar || !manager.isPlaced) && !manager.isFeedingActive {
+            if !manager.isCoaching && manager.isPlaced && !manager.isTooFar && !manager.isFeedingActive {
                 DynamicPanelView(currentState: $panelState, manager: manager)
                     .zIndex(3)
                     .transition(.move(edge: .bottom))

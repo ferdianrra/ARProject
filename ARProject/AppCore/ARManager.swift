@@ -283,7 +283,7 @@ class ARManager: ObservableObject {
                 feedingState = .carryingFood(food)
                 DispatchQueue.main.async {
                     self.feedingOverlayState = .grabbing
-                    self.distanceText = "Food picked up! Walk close to the butterfly."
+                    self.distanceText = "Food picked up! Walk close to the animal."
                 }
                 
                 #if os(iOS)
@@ -304,7 +304,7 @@ class ARManager: ObservableObject {
                 DispatchQueue.main.async {
                     self.feedingOverlayState = .reaching
                     if self.spawnedFoodEntities.isEmpty {
-                        self.distanceText = "Yum! Butterfly is full! 🦋✨"
+                        self.distanceText = "Yum! The animal is full! 🐾✨"
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                             self.stopFeedingMode()
                         }
