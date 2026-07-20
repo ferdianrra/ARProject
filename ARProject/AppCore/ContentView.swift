@@ -205,12 +205,6 @@ struct ContentView : View {
                 .zIndex(5)
             }
         }
-        .onChange(of: panelState) { oldVal, newVal in
-            if newVal == .feedMode {
-                manager.startFeedingMode()
-                panelState = .mainButtons
-            }
-        }
     }
 }
 

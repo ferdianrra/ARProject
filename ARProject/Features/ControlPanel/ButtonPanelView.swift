@@ -10,7 +10,6 @@ enum PanelState {
     case mainButtons
     case resizeMode
     case lifeCycleMode
-    case feedMode
 }
 
 struct DynamicPanelView: View {
@@ -36,9 +35,6 @@ struct DynamicPanelView: View {
                     
                 case .lifeCycleMode:
                     LifeCycleModeView(currentState: $currentState, manager: manager)
-                    
-                case .feedMode:
-                    FeedModeView(currentState: $currentState, manager: manager)
                 }
             }
             .padding(.horizontal, 20)

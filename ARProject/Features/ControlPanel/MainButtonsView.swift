@@ -20,7 +20,9 @@ struct MainButtonsView: View {
     
             }
             
-            Button(action: { currentState = .feedMode }) {
+            Button(action: {
+                manager.startFeedingMode()
+            }) {
                 VStack {
                     Text("🍃")
                         .font(.system(size: 28))
@@ -31,7 +33,6 @@ struct MainButtonsView: View {
                 .background(Color.green)
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            
             }
             
             Button(action: { currentState = .resizeMode }) {

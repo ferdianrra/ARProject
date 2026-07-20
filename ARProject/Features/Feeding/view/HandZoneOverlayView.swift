@@ -18,7 +18,7 @@ class HandZoneOverlayView: UIView {
         case grabbing
     }
     
-    /// Call this from `ViewController+Feeding.swift` whenever the catch state changes — e.g. `overlay.state = .grabbing` when food enters`zoneRect`, and `.reaching` once it's released/reset.
+    /// Call this from `FeedingController` whenever the catch state changes — e.g. `overlay.state = .grabbing` when food is picked up, and `.reaching` once it's released/reset.
     var state: HandState = .reaching {
         didSet {
             guard oldValue != state else { return }
@@ -27,10 +27,7 @@ class HandZoneOverlayView: UIView {
         }
     }
     
-    /// The target zone at the center of the screen where food needs to be
-    /// aimed. `ViewController+Feeding.swift` checks whether a food node's
-    /// projected 2D screen position falls inside this rect to decide whether
-    /// the player is "aiming correctly."
+    /// The target zone at the center of the screen where food needs to be aimed.
     var zoneRect: CGRect {
         let size: CGFloat = 180
         return CGRect(x: bounds.midX - size / 2, y: bounds.midY - size / 2, width: size, height: size)
