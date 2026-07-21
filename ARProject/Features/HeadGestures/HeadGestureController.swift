@@ -1,3 +1,10 @@
+//
+//  HeadGestureController.swift
+//  ARProject
+//
+//  Created by Ferdiansyah Annora on 21/07/26.
+//
+
 import ARKit
 import QuartzCore
 
@@ -53,4 +60,4 @@ final class HeadGestureController {
         }
     }
 }
-3
+

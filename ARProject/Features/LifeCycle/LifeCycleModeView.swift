@@ -49,7 +49,6 @@ struct LifeCycleModeView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 25)
         .onAppear {
-            // Automatically spawn the idle butterfly (Phase 4) when entering this mode
             manager.lifeCycleController.changePhase(to: Int(lifeCyclePhase), manager: manager)
         }
         .onDisappear {

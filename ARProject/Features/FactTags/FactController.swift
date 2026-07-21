@@ -128,12 +128,19 @@ class FactController {
     }
     
     func updateBillboards(cameraAnchor: AnchorEntity, animal: Entity?) {
-        guard let animal = animal else { return }
+        guard let animal = animal, let parent = animal.parent else { return }
         
         let billboards = animal.children.filter { $0.name.hasPrefix("factTag_") || $0.name == "phaseText" || $0.name.hasPrefix("decisionEmoji_") }
+        let camWorldPos = cameraAnchor.position(relativeTo: parent)
+        let animalWorldPos = animal.position(relativeTo: parent)
+        
         for billboard in billboards {
-            billboard.look(at: cameraAnchor.position(relativeTo: animal), from: billboard.position(relativeTo: animal), relativeTo: animal)
-            billboard.transform.rotation *= simd_quatf(angle: .pi, axis: [0, 1, 0])
+            let billboardWorldPos = animalWorldPos + (animal.orientation.act(billboard.position))
+            let diff = camWorldPos - billboardWorldPos
+            let yaw = atan2(diff.x, diff.z)
+            
+            // Align billboard to face camera while keeping it 100% upright
+            billboard.orientation = animal.orientation.inverse * simd_quatf(angle: yaw + .pi, axis: [0, 1, 0])
         }
     }
 }

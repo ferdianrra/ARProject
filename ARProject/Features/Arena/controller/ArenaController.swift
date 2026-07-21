@@ -38,6 +38,9 @@ final class ArenaController {
         
         manager.processFaceGestureIfNeeded()
         manager.factController.updateBillboards(cameraAnchor: camAnchor, animal: manager.animalEntity)
+        for spot in manager.spots {
+            manager.factController.updateBillboards(cameraAnchor: camAnchor, animal: spot.activeButterfly)
+        }
         
         var closestDistance = Float.infinity
         let activeSpot = manager.spots.first(where: { $0.isNear })
