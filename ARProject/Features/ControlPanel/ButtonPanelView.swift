@@ -36,10 +36,9 @@ struct DynamicPanelView: View {
                     
                 case .lifeCycleMode:
                     LifeCycleModeView(currentState: $currentState, manager: manager)
-                    //TODO: - ini masih dummy
+                    
                 case .feedingMode:
                     LifeCycleModeView(currentState: $currentState, manager: manager)
-                }
                 }
             }
             .padding(.horizontal, 20)
@@ -62,10 +61,10 @@ struct DynamicPanelView: View {
             )
             .padding(.horizontal, 30)
             .padding(.bottom, 30)
-            .animation(.spring(response: 0.4, dampingFraction: 0.7, blendDuration: 0), value: currentState)
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.7, blendDuration: 0), value: currentState)
     }
-
+}
 
 #Preview {
     ZStack {
