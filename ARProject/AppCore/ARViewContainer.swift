@@ -26,32 +26,20 @@ struct ARViewContainer: UIViewRepresentable {
 
         arView.session.delegate = context.coordinator
         arView.session.run(config)
+        // Store reference so PlacementController can raycast from tap point
+        manager.arView = arView
 
         let camAnchor = AnchorEntity(.camera)
         arView.scene.addAnchor(camAnchor)
         manager.cameraAnchor = camAnchor
 
-        let anchor = AnchorEntity(.plane(.horizontal, classification: .any, minimumBounds: SIMD2<Float>(0.2, 0.2)))
-        arView.scene.addAnchor(anchor)
-
-        let sub = arView.scene.subscribe(to: SceneEvents.AnchoredStateChanged.self) { event in
-            if event.isAnchored && event.anchor == anchor {
-                DispatchQueue.main.async {
-                    if manager.isCoaching {
-                        withAnimation {
-                            manager.isCoaching = false
-                        }
-                        let staticAnchor = AnchorEntity(world: anchor.transformMatrix(relativeTo: nil as Entity?))
-                        anchor.scene?.addAnchor(staticAnchor)
-                        manager.setup(cameraAnchor: camAnchor, planeAnchor: staticAnchor)
-                    }
-                }
-            }
-        }
-        sub.store(in: &manager.subscriptions)
+        let coordinator = context.coordinator
+        coordinator.arView = arView
+        coordinator.camAnchor = camAnchor
 
         let updateSub = arView.scene.subscribe(to: SceneEvents.Update.self) { _ in
             manager.updateScene()
+            coordinator.checkForFloorUnderCamera()
         }
         updateSub.store(in: &manager.subscriptions)
 
@@ -59,7 +47,7 @@ struct ARViewContainer: UIViewRepresentable {
         coachingOverlay.session = arView.session
         coachingOverlay.goal = .horizontalPlane
         coachingOverlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        coachingOverlay.delegate = context.coordinator
+        coachingOverlay.delegate = coordinator
         arView.addSubview(coachingOverlay)
 
         return arView
@@ -73,6 +61,8 @@ struct ARViewContainer: UIViewRepresentable {
 
     class Coordinator: NSObject, ARSessionDelegate, ARCoachingOverlayViewDelegate {
         var manager: ARManager
+        weak var arView: ARView?
+        weak var camAnchor: AnchorEntity?
 
         init(manager: ARManager) {
             self.manager = manager
@@ -86,10 +76,91 @@ struct ARViewContainer: UIViewRepresentable {
             }
         }
 
+        // MARK: - Per-frame floor check (called from SceneEvents.Update)
+        func checkForFloorUnderCamera() {
+            // Run during coaching phase AND during portal-guide phase (until placed)
+            guard !manager.isPlaced, let arView = arView, let camAnchor = camAnchor else {
+                // Already placed — ensure portals are gone
+                manager.isFloorTargeted = false
+                return
+            }
+
+            let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
+            // existingPlaneGeometry only — no infinite fallback.
+            // If camera isn't directly over real floor geometry, indicator hides.
+            let results = arView.raycast(from: center, allowing: .existingPlaneGeometry, alignment: .horizontal)
+
+            guard let firstResult = results.first,
+                  let planeAnchor = firstResult.anchor as? ARPlaneAnchor else {
+                // No plane under camera center → hide portals, show guidance label
+                DispatchQueue.main.async { [weak self] in
+                    self?.manager.isFloorTargeted = false
+                }
+                return
+            }
+
+            let planeHeight = planeAnchor.transform.columns.3.y
+
+            var isValidFloor = false
+            if ARPlaneAnchor.isClassificationSupported {
+                switch planeAnchor.classification {
+                case .floor:
+                    // Classified as floor: must be at least 50cm below camera start
+                    isValidFloor = planeHeight <= -0.5
+                case .none(_):
+                    // Unclassified: stricter threshold of 1.0m to reject tables (~75cm)
+                    isValidFloor = planeHeight <= -1.0
+                default:
+                    // Explicitly table, seat, wall, etc. → reject
+                    isValidFloor = false
+                }
+            } else {
+                // Classification not supported: use height fallback
+                isValidFloor = planeHeight <= -0.8
+            }
+
+            if isValidFloor {
+                // Extract world position of the raycast hit point
+                let worldPos = SIMD3<Float>(
+                    firstResult.worldTransform.columns.3.x,
+                    firstResult.worldTransform.columns.3.y,
+                    firstResult.worldTransform.columns.3.z
+                )
+
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+
+                    // Update state so ContentView shows portals + correct label
+                    self.manager.isFloorTargeted = true
+
+                    // If still in coaching phase → dismiss coaching and setup anchors
+                    if self.manager.isCoaching {
+                        withAnimation {
+                            self.manager.isCoaching = false
+                        }
+                        let planeAnchorEntity = AnchorEntity(anchor: planeAnchor)
+                        arView.scene.addAnchor(planeAnchorEntity)
+                        self.manager.setup(cameraAnchor: camAnchor, planeAnchor: planeAnchorEntity)
+                    }
+                }
+            } else {
+                // Floor not valid under camera — hide portals, show guidance label
+                DispatchQueue.main.async { [weak self] in
+                    self?.manager.isFloorTargeted = false
+                }
+            }
+        }
+
         func coachingOverlayViewDidDeactivate(_ coachingOverlayView: ARCoachingOverlayView) {
             DispatchQueue.main.async {
-                self.manager.isCoaching = false
+                if self.manager.anchorRef != nil {
+                    self.manager.isCoaching = false
+                } else {
+                    // No valid floor confirmed yet — keep coaching active
+                    coachingOverlayView.setActive(true, animated: true)
+                }
             }
         }
     }
 }
+

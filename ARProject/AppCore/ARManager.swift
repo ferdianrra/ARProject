@@ -12,6 +12,9 @@ class ARManager: NSObject, ObservableObject {
     @Published var showFacts: Bool = false
     @Published var feedbackEvent: FeedbackEvent?
     @Published var isPlaced: Bool = false
+    // True when the camera center raycast hits a valid floor plane in real-time.
+    // Drives the green indicator and dynamic placement label in ContentView.
+    @Published var isFloorTargeted: Bool = false
     
     @Published var isFeedingActive: Bool = false
     @Published var feedingOverlayState: FeedingOverlayState = .reaching
@@ -28,6 +31,8 @@ class ARManager: NSObject, ObservableObject {
     var cameraAnchor: AnchorEntity?
     var cubeModel: Entity?
     var baseRotation: simd_quatf = .init(angle: 0, axis: [0, 1, 0])
+    // Set once by ARViewContainer. Used by PlacementController for tap raycast.
+    weak var arView: ARView?
     
     var animalEntity: Entity? {
         return spots.first(where: { $0.isNear })?.animalModel
