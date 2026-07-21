@@ -4,7 +4,7 @@ import ARKit
 import Combine
 
 
-class ARManager: ObservableObject {
+class ARManager: NSObject, ObservableObject {
     @Published var distanceText: String = "Find me!stop"
     @Published var currentAnimalName: String = ""
     @Published var isCoaching: Bool = true
@@ -15,6 +15,11 @@ class ARManager: ObservableObject {
     
     @Published var isFeedingActive: Bool = false
     @Published var feedingOverlayState: FeedingOverlayState = .reaching
+
+    @Published var showFactSheet: Bool = false
+    @Published var isFactQuestionActive: Bool = false
+    @Published var isFirstDiscoveryFact: Bool = false
+    @Published var currentFactSpot: ARSpot? = nil
 
     
     var subscriptions: [AnyCancellable] = [] 
@@ -38,7 +43,9 @@ class ARManager: ObservableObject {
     private var negativeBuzzAudio: AudioFileResource?
     
     var anchorRef: AnchorEntity?
+    var faceAnchor: AnchorEntity?
     var auraTimer: Timer?
+    var arSession: ARSession?
     
     let habitatController = HabitatController()
     let wanderController = WanderController()
@@ -52,6 +59,7 @@ class ARManager: ObservableObject {
     // Core placement & exploration controllers
     lazy var placementController: PlacementController = PlacementController(manager: self)
     lazy var arenaController: ArenaController = ArenaController(manager: self)
+    let headGestureController = HeadGestureController()
     
     var spots: [ARSpot] = [
         ARSpot(id: 0, center: [-0.6, 0.05, -0.6]),
@@ -115,11 +123,45 @@ class ARManager: ObservableObject {
         }
     }
     
+    func resetPlacement() {
+        auraTimer?.invalidate()
+        auraTimer = nil
+        
+        for spot in spots {
+            spot.wanderTimer?.invalidate()
+            spot.wanderTimer = nil
+            spot.wingAudioController?.stop()
+            spot.wingAudioController = nil
+            
+            spot.activeButterfly?.removeFromParent()
+            spot.activeButterfly = nil
+            spot.blackButterfly?.removeFromParent()
+            spot.blackButterfly = nil
+            
+            for flower in spot.scatteredFlowers {
+                flower.removeFromParent()
+            }
+            spot.scatteredFlowers.removeAll()
+            
+            spot.isNear = false
+            spot.hasVisited = false
+        }
+        
+        parentContainer.children.removeAll()
+        showFactSheet = false
+        isFactQuestionActive = false
+        currentFactSpot = nil
+        showFacts = false
+        isTooFar = true
+        isPlaced = false
+    }
+
     func setup(cameraAnchor: AnchorEntity, planeAnchor: AnchorEntity) {
         self.cameraAnchor = cameraAnchor
         self.anchorRef = planeAnchor
         
         planeAnchor.addChild(parentContainer)
+        setupHeadGestureListener()
         
         do {
             self.butterflyWingAudio = try AudioFileResource.load(

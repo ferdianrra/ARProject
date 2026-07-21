@@ -60,6 +60,14 @@ class ResizeController {
             loadedAnimal.components.set(InputTargetComponent())
         }
         
+        let eyeLevelY: Float
+        if let cam = manager.cameraAnchor {
+            let camY = cam.position(relativeTo: pAnchor).y
+            eyeLevelY = max(0.65, camY - 0.15)
+        } else {
+            eyeLevelY = 0.75
+        }
+        
         if let spot = manager.spots.first(where: { $0.activeButterfly != nil }) ?? manager.spots.first(where: { $0.isNear }) {
             manager.wanderController.stopWandering(at: spot)
             
@@ -70,13 +78,14 @@ class ResizeController {
             pAnchor.addChild(loadedAnimal)
             spot.activeButterfly = loadedAnimal
             
-            loadedAnimal.position = SIMD3<Float>(spot.center.x, 0.35, spot.center.z)
+            loadedAnimal.position = SIMD3<Float>(spot.center.x, eyeLevelY, spot.center.z)
             
             if forceWander {
                 manager.wanderController.startWandering(loadedAnimal, at: spot, anchor: pAnchor)
             }
         } else {
             pAnchor.addChild(loadedAnimal)
+            loadedAnimal.position = SIMD3<Float>(0, eyeLevelY, 0)
         }
         
         if let animation = loadedAnimal.availableAnimations.first {

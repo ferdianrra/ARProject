@@ -9,11 +9,15 @@ class LifeCycleController {
         
         var assetName = ""
         switch phase {
-        case 1: assetName = "butterfly_idle.usdz"
+        case 1: assetName = "butterfly_egg.usdz"
         case 2: assetName = "Caterpillar_and_leaf.usdz"
         case 3: assetName = "Pupa_of_Graphium_agamemnon.usdz"
         case 4: assetName = "butterfly_idle.usdz"
         default: assetName = "butterfly_idle.usdz"
+        }
+        
+        for spot in manager.spots {
+            manager.wanderController.stopWandering(at: spot)
         }
         
         if manager.currentAnimalName != assetName {
@@ -52,18 +56,33 @@ class LifeCycleController {
         guard let loadedAnimal = try? Entity.load(named: animalName) else { return }
         manager.currentAnimalName = animalName
         
-        let targetScale: Float = (animalName == "butterfly_idle.usdz" || animalName == "butterfly.usdz") ? 0.001 : 0.003
-        loadedAnimal.scale = [0, 0, 0]
+        let targetScale: Float
+        switch animalName {
+        case "butterfly_egg.usdz":
+            targetScale = 0.3
+        case "Caterpillar_and_leaf.usdz":
+            targetScale = 0.0003
+        case "butterfly_idle.usdz", "butterfly.usdz":
+            targetScale = 0.001
+        default:
+            targetScale = 0.003
+        }
         
-        // Ensure the loaded animal has an InputTargetComponent to receive gestures
+        loadedAnimal.scale = [0, 0, 0]
         if !loadedAnimal.components.has(InputTargetComponent.self) {
             loadedAnimal.components.set(InputTargetComponent())
         } else {
-            // Re-assign to make sure it's active
             loadedAnimal.components.set(InputTargetComponent())
         }
         
-        // Find the spot that currently holds the butterfly, even if we just walked away
+        let eyeLevelY: Float
+        if let cam = manager.cameraAnchor {
+            let camY = cam.position(relativeTo: pAnchor).y
+            eyeLevelY = max(0.35, camY - 0.15)
+        } else {
+            eyeLevelY = 0.5
+        }
+        
         if let spot = manager.spots.first(where: { $0.activeButterfly != nil }) ?? manager.spots.first(where: { $0.isNear }) {
             manager.wanderController.stopWandering(at: spot)
             
@@ -73,13 +92,11 @@ class LifeCycleController {
             
             pAnchor.addChild(loadedAnimal)
             spot.activeButterfly = loadedAnimal
-            
-            // Snap the lifecycle model exactly to the center of the spot so it doesn't wander
-            // (If forceWander is true, it will start wandering AFTER the bounce animation finishes)
-            loadedAnimal.position = SIMD3<Float>(spot.center.x, 0.35, spot.center.z)
+            loadedAnimal.position = SIMD3<Float>(spot.center.x, eyeLevelY, spot.center.z)
             
         } else {
             pAnchor.addChild(loadedAnimal)
+            loadedAnimal.position = SIMD3<Float>(0, eyeLevelY, 0)
         }
         
         if let animation = loadedAnimal.availableAnimations.first {
@@ -91,23 +108,15 @@ class LifeCycleController {
             camPosInAnchorSpace.y = 0
             loadedAnimal.look(at: camPosInAnchorSpace, from: loadedAnimal.position, relativeTo: pAnchor)
         }
+        
+        if animalName == "butterfly_egg.usdz" {
+            let rotX = simd_quatf(angle: .pi, axis: [1, 0, 0])
+            let rotY = simd_quatf(angle: 90.0 * .pi / 180.0, axis: [0, 1, 0])
+            loadedAnimal.orientation *= (rotX * rotY)
+        }
+        
         manager.baseRotation = loadedAnimal.orientation
         
-        // Add 3D Text Label for the Phase
-        let phaseName = forceWander ? "" : getPhaseName(for: phase)
-        let textEntity = createPhaseText(text: phaseName)
-        let inverseScale = 1.0 / targetScale
-        textEntity.scale = SIMD3<Float>(repeating: inverseScale)
-        // Position it 30cm above the animal
-        textEntity.position = SIMD3<Float>(0, 0.30 * inverseScale, 0)
-        // Make it face the camera initially
-        if let cam = manager.cameraAnchor {
-            textEntity.look(at: cam.position(relativeTo: loadedAnimal), from: textEntity.position, relativeTo: loadedAnimal)
-            textEntity.transform.rotation *= simd_quatf(angle: .pi, axis: [0, 1, 0])
-        }
-        loadedAnimal.addChild(textEntity)
-        
-        // Use a timer for the bounce animation
         var animTimer: Float = 0.0
         let animDuration: Float = 0.8
         
@@ -117,10 +126,6 @@ class LifeCycleController {
                 timer.invalidate()
                 loadedAnimal.scale = SIMD3<Float>(repeating: targetScale)
                 
-                // Removed async currentAnimalName update (moved to start of function)
-                
-                // If it's supposed to wander, start wandering AFTER the bounce completes
-                // We use the spot we found above, not necessarily one that is 'isNear'
                 if forceWander, let spot = manager.spots.first(where: { $0.activeButterfly != nil }) {
                     manager.wanderController.startWandering(loadedAnimal, at: spot, anchor: pAnchor)
                 }
@@ -151,8 +156,6 @@ class LifeCycleController {
                                                  lineBreakMode: .byWordWrapping)
         let material = SimpleMaterial(color: .white, isMetallic: false)
         let textEntity = ModelEntity(mesh: textMesh, materials: [material])
-        
-        // Center the text mathematically
         let bounds = textEntity.visualBounds(relativeTo: nil)
         let centerOffset = -(bounds.extents / 2)
         textEntity.position = SIMD3<Float>(centerOffset.x, 0, 0)

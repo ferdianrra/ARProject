@@ -19,55 +19,11 @@ struct ContentView : View {
     
     var body: some View {
         ZStack {
-            RealityView { content in
-                let camAnchor = AnchorEntity(.camera)
-                content.add(camAnchor)
-                manager.cameraAnchor = camAnchor
-
-                // Create horizontal plane anchor for the content
-                let anchor = AnchorEntity(.plane(.horizontal, classification: .any, minimumBounds: SIMD2<Float>(0.2, 0.2)))
-                
-                // Add the horizontal plane anchor to the scene
-                content.add(anchor)
-                content.camera = .spatialTracking
-                
-                let configuration = SpatialTrackingSession.Configuration(
-                    tracking: [.plane],
-                    sceneUnderstanding: [.occlusion, .physics, .collision, .shadow],
-                    camera: .back
-                )
-                Task {
-                    await trackingSession.run(configuration)
+            ARViewContainer(manager: manager)
+                .ignoresSafeArea()
+                .onChange(of: manager.showFacts) { show in
+                    manager.toggleFacts(show: show)
                 }
-
-                // Subscribe to anchor events to know when the plane is found
-                let sub = content.subscribe(to: SceneEvents.AnchoredStateChanged.self) { event in
-                    if event.isAnchored && event.anchor == anchor {
-                        DispatchQueue.main.async {
-                            if manager.isCoaching { // Only trigger the first time it anchors
-                                withAnimation {
-                                    manager.isCoaching = false
-                                }
-                                
-                                // Create a static world anchor at the plane's current position so it never moves
-                                let staticAnchor = AnchorEntity(world: anchor.transformMatrix(relativeTo: nil))
-                                anchor.scene?.addAnchor(staticAnchor)
-                                
-                                manager.setup(cameraAnchor: camAnchor, planeAnchor: staticAnchor)
-                            }
-                        }
-                    }
-                }
-                manager.eventSubscriptions.append(sub)
-                
-                let updateSub = content.subscribe(to: SceneEvents.Update.self) { _ in
-                    manager.updateScene()
-                }
-                manager.eventSubscriptions.append(updateSub)
-            }
-            .onChange(of: manager.showFacts) { show in
-                manager.toggleFacts(show: show)
-            }
             .onChange(of: manager.isTooFar) { tooFar in
                 if tooFar {
                     withAnimation {
@@ -146,37 +102,65 @@ struct ContentView : View {
                     .transition(.opacity)
                     .zIndex(1)
             } else if manager.isPlaced && !manager.isFeedingActive {
-                VStack {
-                    if manager.isTooFar {
-                        Text("Get closer to play!")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.orange.opacity(0.85))
-                            .cornerRadius(20)
-                            .shadow(radius: 10)
-                            .padding(.top, 50)
-                    } else {
-                        Text("Explore the animal! Walk out of the arena to exit.")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.orange.opacity(0.85))
-                            .cornerRadius(20)
-                            .shadow(radius: 10)
-                            .padding(.top, 50)
-                    }
-                    Spacer()
+                if manager.isTooFar {
+                    InformationContainer(
+                        message: "Get closer to play!",
+                        isWarning: true,
+                        showButton: false,
+                        alignment: .top
+                    )
+                    .transition(.opacity)
+                    .animation(.easeInOut, value: manager.isTooFar)
+                    .zIndex(2)
+                } else {
+                    InformationContainer(
+                        message: topInstructionText(for: panelState),
+                        isWarning: false,
+                        showButton: false,
+                        alignment: .top
+                    )
+                    .animation(.easeInOut(duration: 0.3), value: panelState)
+                    .transition(.opacity)
+                    .animation(.easeInOut, value: manager.isTooFar)
+                    .zIndex(2)
                 }
-                .transition(.opacity)
-                .animation(.easeInOut, value: manager.isTooFar)
-                .zIndex(2)
             }
             
             if !manager.isCoaching && manager.isPlaced && !manager.isTooFar && !manager.isFeedingActive {
                 DynamicPanelView(currentState: $panelState, manager: manager)
                     .zIndex(3)
                     .transition(.move(edge: .bottom))
+            }
+            
+            if manager.isPlaced && !manager.isCoaching && !manager.isFeedingActive {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            withAnimation {
+                                manager.resetPlacement()
+                                panelState = .hidden
+                            }
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("Reset Area")
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.black.opacity(0.6), in: Capsule())
+                            .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 3)
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.top, 48)
+                    }
+                    Spacer()
+                }
+                .zIndex(7)
+                .transition(.opacity)
             }
             
             if manager.isFeedingActive {
@@ -202,8 +186,46 @@ struct ContentView : View {
                     }
                     Spacer()
                 }
-                .zIndex(5)
             }
+            
+            if manager.showFactSheet, let spot = manager.currentFactSpot {
+                ButterflyFactSheetView(
+                    isPresented: $manager.showFactSheet,
+                    isQuestionActive: $manager.isFactQuestionActive,
+                    onDecision: { decision in
+                        manager.handleFactDecision(decision, spot: spot)
+                    }
+                )
+                .environmentObject(manager)
+                .zIndex(6)
+                .transition(.opacity)
+            }
+
+            if let event = manager.feedbackEvent, event.message != nil {
+                VStack {
+                    FeedbackToastView(event: event) {
+                        withAnimation {
+                            manager.feedbackEvent = nil
+                        }
+                    }
+                    .padding(.top, 50)
+                    Spacer()
+                }
+                .zIndex(10)
+            }
+        }
+    }
+
+    private func topInstructionText(for state: PanelState) -> String {
+        switch state {
+        case .lifeCycleMode:
+            return "Slide the bar to see animal phases! The animal is in the center of the habitat."
+        case .resizeMode:
+            return "Drag slider to adjust animal size!"
+        case .feedingMode:
+            return "Hold out your hand to feed the butterfly!"
+        default:
+            return "Explore the animal! Walk out of the arena to exit."
         }
     }
 }
@@ -221,7 +243,3 @@ struct CircleGuideView: View {
         }
     }
 }
-
-//#Preview {
-//    ContentView()
-//}

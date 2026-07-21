@@ -12,7 +12,8 @@ class WanderController {
         
         for _ in 0..<5 {
             let point = randomPointInCircle(radius: 1.3)
-            let candidateLocal = SIMD3<Float>(spot.center.x + point.x, 0.35, spot.center.z + point.y)
+            let flyHeight = Float.random(in: 0.65...0.85)
+            let candidateLocal = SIMD3<Float>(spot.center.x + point.x, flyHeight, spot.center.z + point.y)
             let candidateWorld = anchor.convert(position: candidateLocal, to: nil)
             
             if let hits = butterfly.scene?.raycast(from: centerWorld, to: candidateWorld), !hits.isEmpty {
@@ -23,7 +24,7 @@ class WanderController {
             }
         }
         
-        let spawnPositionLocal = chosenSpawnPoint ?? SIMD3<Float>(spot.center.x, 0.35, spot.center.z)
+        let spawnPositionLocal = chosenSpawnPoint ?? SIMD3<Float>(spot.center.x, 0.75, spot.center.z)
         butterfly.position = spawnPositionLocal
         anchor.addChild(butterfly)
         playAllAnimationsRecursive(butterfly)
@@ -48,7 +49,8 @@ class WanderController {
         
         for _ in 0..<5 {
             let point = randomPointInCircle(radius: 1.3)
-            let candidateLocal = SIMD3<Float>(spot.center.x + point.x, 0.35, spot.center.z + point.y)
+            let flyHeight = Float.random(in: 0.65...0.85)
+            let candidateLocal = SIMD3<Float>(spot.center.x + point.x, flyHeight, spot.center.z + point.y)
             let candidateWorld = anchor.convert(position: candidateLocal, to: nil)
             
             if let hits = butterfly.scene?.raycast(from: currentPositionWorld, to: candidateWorld), !hits.isEmpty {
@@ -59,7 +61,7 @@ class WanderController {
             }
         }
         
-        let targetPositionLocal = chosenTargetLocal ?? SIMD3<Float>(spot.center.x, 0.35, spot.center.z)
+        let targetPositionLocal = chosenTargetLocal ?? SIMD3<Float>(spot.center.x, 0.75, spot.center.z)
         let currentPositionLocal = butterfly.position
         let direction = normalize(targetPositionLocal - currentPositionLocal)
         let targetRotation = simd_quatf(from: [0, 0, 1], to: direction)
@@ -76,18 +78,12 @@ class WanderController {
         spot.wanderTimer = nil
         
         if let active = spot.activeButterfly {
-            var targetTransform = Transform.identity
-            targetTransform.translation = spot.center
-            targetTransform.scale = active.scale
+            stopAllAnimationsRecursive(active)
             
-            active.move(to: targetTransform, relativeTo: active.parent, duration: 1.5, timingFunction: .easeInOut)
+            var targetTransform = active.transform
+            targetTransform.translation = SIMD3<Float>(spot.center.x, 0.40, spot.center.z)
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self, weak active] in
-                guard let self = self, let active = active else { return }
-                if !spot.isNear {
-                    self.stopAllAnimationsRecursive(active)
-                }
-            }
+            active.move(to: targetTransform, relativeTo: active.parent, duration: 0.5, timingFunction: .easeInOut)
         }
     }
     
