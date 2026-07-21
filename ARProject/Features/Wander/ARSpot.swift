@@ -9,18 +9,28 @@ class ARSpot {
     var isNear: Bool = false
     var isLockedNear: Bool = false
     
-    var blackButterfly: Entity?
-    var activeButterfly: Entity?
+    var animalTypeName: String = ""       
+    var animalTemplate: ModelEntity?
+    var spatialAudioEntity: Entity?
     var lockEntity: Entity?
     var wanderTimer: Timer?
     var scatteredFlowers: [Entity] = []
     
+    var reflectiveAnimal: ModelEntity?
+    var animalModel: Entity?
+    
     var circleEntity: ModelEntity?
     var wingAudioController: AudioPlaybackController?
-
-    init(id: Int, center: SIMD3<Float>, isLocked: Bool = false) {
+    var audioName: String
+    
+    var groundOffset: Float = 0
+    
+    init(id: Int, center: SIMD3<Float>, animalModel: ModelEntity? = nil, audioName: String = "", isLocked: Bool = false) {
         self.id = id
         self.center = center
+        self.hasVisited = false
+        self.animalModel = animalModel
+        self.audioName = audioName
         self.isLocked = isLocked
     }
 }

@@ -17,7 +17,7 @@ class LifeCycleController {
         }
         
         for spot in manager.spots {
-            manager.wanderController.stopWandering(at: spot)
+            manager.wanderController.stopWandering(at: spot, yHeight: manager.heightOffset(for: spot))
         }
         
         if manager.currentAnimalName != assetName {
@@ -27,27 +27,27 @@ class LifeCycleController {
     
     func exitLifeCycle(manager: ARManager) {
         let anchor = manager.parentContainer
-        
         let assetName = "butterfly.usdz"
+        
         if manager.currentAnimalName != assetName {
-            if let spot = manager.spots.first(where: { $0.activeButterfly != nil }) {
-                if let existing = spot.activeButterfly {
+            if let spot = manager.spots.first(where: { $0.animalModel != nil }) {
+                if let existing = spot.animalModel {
                     existing.removeFromParent()
                 }
-                
-                if let template = manager.coloredButterflyTemplate {
-                    manager.wanderController.spawnButterfly(at: spot, template: template, anchor: anchor)
+                if let template = manager.butterflyTemplate {
+                    let finalY = spot.center.y + spot.groundOffset + manager.flightExtra(for: spot.animalTypeName)
+                    manager.wanderController.spawnButterfly(at: spot, template: template, anchor: manager.parentContainer, yHeight: finalY)
                 } else {
                     spawnAnimal(name: assetName, on: anchor, manager: manager, forceWander: true)
                 }
-                
-                if let wingAudio = manager.butterflyWingAudio {
-                    spot.wingAudioController = spot.activeButterfly?.playAudio(wingAudio)
+                if !spot.audioName.isEmpty, let animalModel = spot.animalModel {
+                    let audioEntity = manager.createSpatialAudio(audioName: spot.audioName)
+                    animalModel.addChild(audioEntity)
+                    spot.spatialAudioEntity = audioEntity
                 }
             } else {
                 spawnAnimal(name: assetName, on: anchor, manager: manager, forceWander: true)
             }
-            
             manager.currentAnimalName = assetName
         }
     }
@@ -83,15 +83,15 @@ class LifeCycleController {
             eyeLevelY = 0.5
         }
         
-        if let spot = manager.spots.first(where: { $0.activeButterfly != nil }) ?? manager.spots.first(where: { $0.isNear }) {
-            manager.wanderController.stopWandering(at: spot)
+        if let spot = manager.spots.first(where: { $0.animalModel != nil }) ?? manager.spots.first(where: { $0.isNear }) {
+            manager.wanderController.stopWandering(at: spot, yHeight: manager.heightOffset(for: spot))
             
-            if let existing = spot.activeButterfly {
+            if let existing = spot.animalModel {
                 existing.removeFromParent()
             }
             
             pAnchor.addChild(loadedAnimal)
-            spot.activeButterfly = loadedAnimal
+            spot.animalModel = loadedAnimal
             loadedAnimal.position = SIMD3<Float>(spot.center.x, eyeLevelY, spot.center.z)
             
         } else {
@@ -133,8 +133,8 @@ class LifeCycleController {
                 timer.invalidate()
                 loadedAnimal.scale = SIMD3<Float>(repeating: targetScale)
                 
-                if forceWander, let spot = manager.spots.first(where: { $0.activeButterfly != nil }) {
-                    manager.wanderController.startWandering(loadedAnimal, at: spot, anchor: pAnchor)
+                if forceWander, let spot = manager.spots.first(where: { $0.animalModel != nil }) {
+                    manager.wanderController.startWandering(loadedAnimal, at: spot, anchor: pAnchor, yHeight: manager.heightOffset(for: spot))
                 }
             } else {
                 let progress = animTimer / animDuration

@@ -46,18 +46,91 @@ final class PlacementController {
         Task { [weak manager] in
             guard let manager = manager else { return }
             do {
-                let template = try await Entity(named: "butterfly", in: nil)
-                manager.coloredButterflyTemplate = template.clone(recursive: true)
+                let animals = ["butterfly", "Lioness", "MountainGoat", "Wolf"]
                 
-                for spot in manager.spots {
+                for (index, spot) in manager.spots.enumerated() {
                     guard !spot.isLocked else { continue }
-                    let blackButterfly = template.clone(recursive: true)
-                    manager.habitatController.setEntityColor(blackButterfly, color: .black)
-                    manager.wanderController.stopAllAnimationsRecursive(blackButterfly)
-                    blackButterfly.scale = SIMD3<Float>(repeating: 0.0008)
-                    blackButterfly.position = SIMD3<Float>(spot.center.x, 0.40, spot.center.z)
-                    manager.parentContainer.addChild(blackButterfly)
-                    spot.blackButterfly = blackButterfly
+                    let animalName = animals[index % animals.count]
+                    
+                    do {
+                        let template = try await ModelEntity(named: animalName, in: nil)
+                        
+                        let scale: Float
+                        
+                        switch animalName {
+                        case "butterfly":
+                            scale = 0.001
+                        case "Lioness":
+                            scale = 0.005
+                        case "MountainGoat":
+                            scale = 0.005     
+                        case "Wolf":
+                            scale = 0.005
+                        default:
+                            scale = 0.005
+                        }
+                        
+                        template.scale = SIMD3<Float>(repeating: scale)
+                        
+
+                        let bounds = template.visualBounds(relativeTo: template)
+                        // If pivot is centered, this pulls the model's bottom edge down to y=0
+//                        let groundOffset = -(bounds.min.y * scale)
+                        
+                        let preciseGroundOffset: Float
+                        switch animalName {
+                        case "butterfly": preciseGroundOffset = 1.0 // Ketinggian terbang
+                        case "Lioness": preciseGroundOffset = 0.01
+                        case "Wolf": preciseGroundOffset = 0.0
+                        case "MountainGoat": preciseGroundOffset = 0.01
+                        default: preciseGroundOffset = 0.0
+                        }
+                        
+                        spot.groundOffset = preciseGroundOffset
+
+                        print("\(animalName) scaled size: \(bounds.extents), groundOffset: \(preciseGroundOffset)")
+                        
+                        let scaledBounds = template.visualBounds(relativeTo: nil)
+                        print("\(animalName) scaled size (meters): \(scaledBounds.extents)")
+                        
+                        switch animalName {
+                        case "butterfly": spot.audioName = "butterflyWing.wav"
+                        case "Lioness": spot.audioName = "lion.wav"
+                        case "MountainGoat": spot.audioName = "sheep.flac"
+                        case "Wolf": spot.audioName = "wolf.wav"
+                        default: spot.audioName = ""
+                        }
+                        
+                        spot.animalTypeName = animalName
+                        spot.animalTemplate = template.clone(recursive: true)
+                        
+                        if animalName == "butterfly" {
+                            manager.butterflyTemplate = spot.animalTemplate
+                        }
+                        
+                        let reflectiveAnimal = template.clone(recursive: true)
+                        manager.habitatController.setReflective(reflectiveAnimal)
+                        manager.wanderController.stopAllAnimationsRecursive(reflectiveAnimal)
+                        
+                        let isFlyer = animalName == "butterfly"
+                        let reflectiveY = isFlyer ? 0.5 : spot.groundOffset
+                        
+//                        reflectiveAnimal.position = spot.center
+                        reflectiveAnimal.position = SIMD3<Float>(spot.center.x, reflectiveY, spot.center.z)
+                        manager.parentContainer.addChild(reflectiveAnimal)
+                        spot.reflectiveAnimal = reflectiveAnimal
+                        
+                        
+                        if !spot.audioName.isEmpty {
+                            let audioEntity = manager.createSpatialAudio(audioName: spot.audioName)
+                            reflectiveAnimal.addChild(audioEntity)
+                            spot.spatialAudioEntity = audioEntity
+                        }
+                        
+                    } catch {
+                        print("error loading \(animalName): \(error)")
+                        continue   // move on to the next animal instead of killing the whole loop
+                    }
                 }
             } catch {
                 print("error load butterfly.usdz: \(error)")
