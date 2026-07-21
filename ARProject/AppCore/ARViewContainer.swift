@@ -31,27 +31,13 @@ struct ARViewContainer: UIViewRepresentable {
         arView.scene.addAnchor(camAnchor)
         manager.cameraAnchor = camAnchor
 
-        let anchor = AnchorEntity(.plane(.horizontal, classification: .any, minimumBounds: SIMD2<Float>(0.2, 0.2)))
-        arView.scene.addAnchor(anchor)
-
-        let sub = arView.scene.subscribe(to: SceneEvents.AnchoredStateChanged.self) { event in
-            if event.isAnchored && event.anchor == anchor {
-                DispatchQueue.main.async {
-                    if manager.isCoaching {
-                        withAnimation {
-                            manager.isCoaching = false
-                        }
-                        let staticAnchor = AnchorEntity(world: anchor.transformMatrix(relativeTo: nil as Entity?))
-                        anchor.scene?.addAnchor(staticAnchor)
-                        manager.setup(cameraAnchor: camAnchor, planeAnchor: staticAnchor)
-                    }
-                }
-            }
-        }
-        sub.store(in: &manager.subscriptions)
+        let coordinator = context.coordinator
+        coordinator.arView = arView
+        coordinator.camAnchor = camAnchor
 
         let updateSub = arView.scene.subscribe(to: SceneEvents.Update.self) { _ in
             manager.updateScene()
+            coordinator.checkForFloorUnderCamera()
         }
         updateSub.store(in: &manager.subscriptions)
 
@@ -59,7 +45,7 @@ struct ARViewContainer: UIViewRepresentable {
         coachingOverlay.session = arView.session
         coachingOverlay.goal = .horizontalPlane
         coachingOverlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        coachingOverlay.delegate = context.coordinator
+        coachingOverlay.delegate = coordinator
         arView.addSubview(coachingOverlay)
 
         return arView
@@ -73,6 +59,8 @@ struct ARViewContainer: UIViewRepresentable {
 
     class Coordinator: NSObject, ARSessionDelegate, ARCoachingOverlayViewDelegate {
         var manager: ARManager
+        weak var arView: ARView?
+        weak var camAnchor: AnchorEntity?
 
         init(manager: ARManager) {
             self.manager = manager
@@ -86,9 +74,63 @@ struct ARViewContainer: UIViewRepresentable {
             }
         }
 
+        func checkForFloorUnderCamera() {
+            guard manager.isCoaching, let arView = arView, let camAnchor = camAnchor else { return }
+            
+            let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
+            var results = arView.raycast(from: center, allowing: .existingPlaneGeometry, alignment: .horizontal)
+            if results.isEmpty {
+                results = arView.raycast(from: center, allowing: .existingPlaneInfinite, alignment: .horizontal)
+            }
+            
+            guard let firstResult = results.first,
+                  let planeAnchor = firstResult.anchor as? ARPlaneAnchor else { return }
+            
+            let planeHeight = planeAnchor.transform.columns.3.y
+            
+            var isValidFloor = false
+            if ARPlaneAnchor.isClassificationSupported {
+                switch planeAnchor.classification {
+                case .floor:
+                    // If classified as floor, ensure it's not unreasonably high (must be at least 50cm below camera)
+                    isValidFloor = planeHeight <= -0.5
+                case .none(_):
+                    // If undetermined/unknown/notAvailable, must be at least 80cm below initial camera
+                    isValidFloor = planeHeight <= -0.8
+                default:
+                    // Explicitly classified as table, seat, wall, etc. -> REJECT
+                    isValidFloor = false
+                }
+            } else {
+                // Device doesn't support classification: must be at least 80cm below initial camera
+                isValidFloor = planeHeight <= -0.8
+            }
+            
+            if isValidFloor {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self, self.manager.isCoaching else { return }
+                    
+                    withAnimation {
+                        self.manager.isCoaching = false
+                    }
+                    
+                    let planeAnchorEntity = AnchorEntity(anchor: planeAnchor)
+                    arView.scene.addAnchor(planeAnchorEntity)
+                    
+                    self.manager.setup(cameraAnchor: camAnchor, planeAnchor: planeAnchorEntity)
+                }
+            }
+        }
+
         func coachingOverlayViewDidDeactivate(_ coachingOverlayView: ARCoachingOverlayView) {
             DispatchQueue.main.async {
-                self.manager.isCoaching = false
+                if self.manager.anchorRef != nil {
+                    self.manager.isCoaching = false
+                } else {
+                    // Table/other plane was detected but not validated as a floor.
+                    // Reactivate coaching overlay to keep scanning.
+                    coachingOverlayView.setActive(true, animated: true)
+                }
             }
         }
     }

@@ -23,12 +23,23 @@ final class PlacementController {
         let orientation = camAnchor.orientation(relativeTo: nil)
         let forward = orientation.act(SIMD3<Float>(0, 0, -1))
         
-        guard forward.y < -0.1 else { return }
+        // ORIGINAL guard — camera must tilt slightly downward (≈6°).
+        // guard forward.y < -0.1 else { return }
+
+        // UPDATED guard — camera must face downward at least ≈30°.
+        // This prevents placement when looking at walls or the sky.
+        guard forward.y <= -0.5 else { return }
         
         let t = (planeHeight - camPos.y) / forward.y
         guard t > 0 else { return }
         
         let intersectionWorld = camPos + t * forward
+
+        // ADDED: Reject taps whose intersection point is more than 2.5 m away.
+        // This prevents placement in mid-air or far-away locations.
+        let distanceFromCamera = length(intersectionWorld - camPos)
+        guard distanceFromCamera <= 2.5 else { return }
+
         let localPos = anchor.convert(position: intersectionWorld, from: nil)
         
         manager.parentContainer.position = [localPos.x, 0, localPos.z]
