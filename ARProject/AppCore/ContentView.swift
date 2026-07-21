@@ -102,37 +102,65 @@ struct ContentView : View {
                     .transition(.opacity)
                     .zIndex(1)
             } else if manager.isPlaced && !manager.isFeedingActive {
-                VStack {
-                    if manager.isTooFar {
-                        Text("Get closer to play!")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.orange.opacity(0.85))
-                            .cornerRadius(20)
-                            .shadow(radius: 10)
-                            .padding(.top, 50)
-                    } else {
-                        Text("Explore the animal! Walk out of the arena to exit.")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.orange.opacity(0.85))
-                            .cornerRadius(20)
-                            .shadow(radius: 10)
-                            .padding(.top, 50)
-                    }
-                    Spacer()
+                if manager.isTooFar {
+                    InformationContainer(
+                        message: "Get closer to play!",
+                        isWarning: true,
+                        showButton: false,
+                        alignment: .top
+                    )
+                    .transition(.opacity)
+                    .animation(.easeInOut, value: manager.isTooFar)
+                    .zIndex(2)
+                } else {
+                    InformationContainer(
+                        message: topInstructionText(for: panelState),
+                        isWarning: false,
+                        showButton: false,
+                        alignment: .top
+                    )
+                    .animation(.easeInOut(duration: 0.3), value: panelState)
+                    .transition(.opacity)
+                    .animation(.easeInOut, value: manager.isTooFar)
+                    .zIndex(2)
                 }
-                .transition(.opacity)
-                .animation(.easeInOut, value: manager.isTooFar)
-                .zIndex(2)
             }
             
             if !manager.isCoaching && manager.isPlaced && !manager.isTooFar && !manager.isFeedingActive {
                 DynamicPanelView(currentState: $panelState, manager: manager)
                     .zIndex(3)
                     .transition(.move(edge: .bottom))
+            }
+            
+            if manager.isPlaced && !manager.isCoaching && !manager.isFeedingActive {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            withAnimation {
+                                manager.resetPlacement()
+                                panelState = .hidden
+                            }
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("Reset Area")
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.black.opacity(0.6), in: Capsule())
+                            .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 3)
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.top, 48)
+                    }
+                    Spacer()
+                }
+                .zIndex(7)
+                .transition(.opacity)
             }
             
             if manager.isFeedingActive {
@@ -184,8 +212,20 @@ struct ContentView : View {
                     Spacer()
                 }
                 .zIndex(10)
-                .transition(.move(edge: .top).combined(with: .opacity))
             }
+        }
+    }
+
+    private func topInstructionText(for state: PanelState) -> String {
+        switch state {
+        case .lifeCycleMode:
+            return "Slide the bar to see animal phases! The animal is in the center of the habitat."
+        case .resizeMode:
+            return "Drag slider to adjust animal size!"
+        case .feedingMode:
+            return "Hold out your hand to feed the butterfly!"
+        default:
+            return "Explore the animal! Walk out of the arena to exit."
         }
     }
 }

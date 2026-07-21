@@ -67,17 +67,20 @@ final class ArenaController {
                         
                         manager.habitatController.animateCircleScale(for: spot, to: 1.0)
                         
-                        if let existing = spot.activeButterfly {
-                            existing.isEnabled = true
-                            manager.wanderController.startWandering(existing, at: spot, anchor: manager.parentContainer)
-                        } else if let template = manager.coloredButterflyTemplate {
-                            manager.wanderController.spawnButterfly(at: spot, template: template, anchor: manager.parentContainer)
+                        if manager.currentAnimalName == "butterfly.usdz" || manager.currentAnimalName.isEmpty {
+                            if let existing = spot.activeButterfly {
+                                existing.isEnabled = true
+                                manager.wanderController.startWandering(existing, at: spot, anchor: manager.parentContainer)
+                            } else if let template = manager.coloredButterflyTemplate {
+                                manager.wanderController.spawnButterfly(at: spot, template: template, anchor: manager.parentContainer)
+                            }
+                            
+                            if let wingAudio = manager.butterflyWingAudio {
+                                spot.wingAudioController = spot.activeButterfly?.playAudio(wingAudio)
+                            }
                         }
-                        manager.habitatController.setFlowerHabitat(at: spot, count: 24, scale: 0.0012, scatteringRadius: 1.3, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
-
-                        if let wingAudio = manager.butterflyWingAudio {
-                            spot.wingAudioController = spot.activeButterfly?.playAudio(wingAudio)
-                        }
+                        
+                        manager.habitatController.setFlowerHabitat(at: spot, count: 24, scale: 0.0028, scatteringRadius: 1.3, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
 
                         if isFirstDiscovery {
                             manager.triggerFeedback(tone: .positive, haptic: .success, sound: .positiveChime)
@@ -93,7 +96,10 @@ final class ArenaController {
                     spot.isNear = false
                     manager.wanderController.stopWandering(at: spot)
                     manager.habitatController.animateCircleScale(for: spot, to: 0.25)
-                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0005, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0012, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+
+                    // Re-enable black butterfly silhouette when out of arena
+                    spot.blackButterfly?.isEnabled = true
 
                     spot.wingAudioController?.stop()
                     spot.wingAudioController = nil

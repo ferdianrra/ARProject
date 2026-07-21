@@ -9,7 +9,9 @@ import Foundation
 
 struct ButterflyFact: Identifiable {
     let id = UUID()
+    let title: String
     let text: String
+    let emoji: String
 }
 
 enum HeadDecision {
@@ -20,10 +22,25 @@ enum HeadDecision {
 
 struct ButterflyFactData {
     static let facts: [ButterflyFact] = [
-        ButterflyFact(text: "Butterflies love to camouflage with their surroundings for self-protection."),
-        ButterflyFact(text: "There are over 20,000 species of butterflies worldwide."),
-        ButterflyFact(text: "Butterfly wing colors come from thousands of tiny microscopic chitin scales."),
-        ButterflyFact(text: "Butterflies play a crucial role in plant pollination."),
-        ButterflyFact(text: "Butterflies don't fear rain, but they cannot fly if their bodies get too cold!")
+        ButterflyFact(
+            title: "Prismatic Wings",
+            text: "Butterfly wings are actually clear! Thousands of tiny scales reflect light to create their brilliant, shimmering colors.",
+            emoji: "🪽"
+        ),
+        ButterflyFact(
+            title: "Tasting with Feet",
+            text: "Butterflies taste food with their feet! Landing on a plant helps them test if it's safe to eat or lay eggs.",
+            emoji: "🐾"
+        ),
+        ButterflyFact(
+            title: "Solar Fliers",
+            text: "Butterflies need warmth to fly! They bask in morning sunlight to warm up their wing muscles before taking off.",
+            emoji: "☀️"
+        ),
+        ButterflyFact(
+            title: "Global Pollinators",
+            text: "With over 20,000 species worldwide, butterflies help plants grow and flowers bloom everywhere.",
+            emoji: "🌸"
+        )
     ]
 }

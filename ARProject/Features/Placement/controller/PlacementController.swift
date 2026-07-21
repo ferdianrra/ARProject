@@ -54,7 +54,7 @@ final class PlacementController {
                     manager.habitatController.setEntityColor(blackButterfly, color: .black)
                     manager.wanderController.stopAllAnimationsRecursive(blackButterfly)
                     blackButterfly.scale = SIMD3<Float>(repeating: 0.0008)
-                    blackButterfly.position = spot.center
+                    blackButterfly.position = SIMD3<Float>(spot.center.x, 0.40, spot.center.z)
                     manager.parentContainer.addChild(blackButterfly)
                     spot.blackButterfly = blackButterfly
                 }
@@ -67,7 +67,7 @@ final class PlacementController {
                 manager.flowerHabitatTemplate = flowerTemplate
                 
                 for spot in manager.spots {
-                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0005, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0012, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
                 }
             } catch {
                 print("error load flower_habitat.usdz: \(error)")

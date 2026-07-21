@@ -16,6 +16,10 @@ class LifeCycleController {
         default: assetName = "butterfly_idle.usdz"
         }
         
+        for spot in manager.spots {
+            manager.wanderController.stopWandering(at: spot)
+        }
+        
         if manager.currentAnimalName != assetName {
             spawnAnimal(name: assetName, phase: phase, on: anchor, manager: manager)
         }
@@ -55,9 +59,9 @@ class LifeCycleController {
         let targetScale: Float
         switch animalName {
         case "butterfly_egg.usdz":
-            targetScale = 0.3 // 10x larger again (0.03 -> 0.3)
+            targetScale = 0.3
         case "Caterpillar_and_leaf.usdz":
-            targetScale = 0.0003 // 0.1x smaller
+            targetScale = 0.0003
         case "butterfly_idle.usdz", "butterfly.usdz":
             targetScale = 0.001
         default:
@@ -88,8 +92,6 @@ class LifeCycleController {
             
             pAnchor.addChild(loadedAnimal)
             spot.activeButterfly = loadedAnimal
-            
-            // Position at spot center, aligned level with camera eye height
             loadedAnimal.position = SIMD3<Float>(spot.center.x, eyeLevelY, spot.center.z)
             
         } else {
@@ -108,7 +110,6 @@ class LifeCycleController {
         }
         
         if animalName == "butterfly_egg.usdz" {
-            // Rotate 180 degrees around horizontal (X-axis) and 30 degrees around vertical (Y-axis)
             let rotX = simd_quatf(angle: .pi, axis: [1, 0, 0])
             let rotY = simd_quatf(angle: 90.0 * .pi / 180.0, axis: [0, 1, 0])
             loadedAnimal.orientation *= (rotX * rotY)
@@ -116,21 +117,6 @@ class LifeCycleController {
         
         manager.baseRotation = loadedAnimal.orientation
         
-        // Add 3D Text Label for the Phase
-        let phaseName = forceWander ? "" : getPhaseName(for: phase)
-        let textEntity = createPhaseText(text: phaseName)
-        let inverseScale = 1.0 / targetScale
-        textEntity.scale = SIMD3<Float>(repeating: inverseScale)
-        // Position it 55cm above the animal (higher up)
-        textEntity.position = SIMD3<Float>(0, 0.55 * inverseScale, 0)
-        // Make it face the camera initially
-        if let cam = manager.cameraAnchor {
-            textEntity.look(at: cam.position(relativeTo: loadedAnimal), from: textEntity.position, relativeTo: loadedAnimal)
-            textEntity.transform.rotation *= simd_quatf(angle: .pi, axis: [0, 1, 0])
-        }
-        loadedAnimal.addChild(textEntity)
-        
-        // Use a timer for the bounce animation
         var animTimer: Float = 0.0
         let animDuration: Float = 0.8
         

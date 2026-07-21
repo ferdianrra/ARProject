@@ -122,6 +122,39 @@ class ARManager: NSObject, ObservableObject {
         }
     }
     
+    func resetPlacement() {
+        auraTimer?.invalidate()
+        auraTimer = nil
+        
+        for spot in spots {
+            spot.wanderTimer?.invalidate()
+            spot.wanderTimer = nil
+            spot.wingAudioController?.stop()
+            spot.wingAudioController = nil
+            
+            spot.activeButterfly?.removeFromParent()
+            spot.activeButterfly = nil
+            spot.blackButterfly?.removeFromParent()
+            spot.blackButterfly = nil
+            
+            for flower in spot.scatteredFlowers {
+                flower.removeFromParent()
+            }
+            spot.scatteredFlowers.removeAll()
+            
+            spot.isNear = false
+            spot.hasVisited = false
+        }
+        
+        parentContainer.children.removeAll()
+        showFactSheet = false
+        isFactQuestionActive = false
+        currentFactSpot = nil
+        showFacts = false
+        isTooFar = true
+        isPlaced = false
+    }
+
     func setup(cameraAnchor: AnchorEntity, planeAnchor: AnchorEntity) {
         self.cameraAnchor = cameraAnchor
         self.anchorRef = planeAnchor
