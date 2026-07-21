@@ -85,6 +85,7 @@ final class ArenaController {
                         if isFirstDiscovery {
                             manager.triggerFeedback(tone: .positive, haptic: .success, sound: .positiveChime)
                             DispatchQueue.main.async {
+                                manager.isFirstDiscoveryFact = true
                                 manager.currentFactSpot = spot
                                 manager.showFactSheet = true
                             }

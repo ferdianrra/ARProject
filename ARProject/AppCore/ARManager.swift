@@ -18,6 +18,7 @@ class ARManager: NSObject, ObservableObject {
 
     @Published var showFactSheet: Bool = false
     @Published var isFactQuestionActive: Bool = false
+    @Published var isFirstDiscoveryFact: Bool = false
     @Published var currentFactSpot: ARSpot? = nil
 
     

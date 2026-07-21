@@ -30,7 +30,11 @@ struct MainButtonsView: View {
                 buttonColor: Color(red: 0.98, green: 0.96, blue: 0.88),
                 action: {
                     withAnimation {
-                        manager.showFacts.toggle()
+                        if manager.currentFactSpot == nil {
+                            manager.currentFactSpot = manager.spots.first(where: { $0.isNear }) ?? manager.spots.first
+                        }
+                        manager.isFirstDiscoveryFact = false
+                        manager.showFactSheet = true
                     }
                 }
             )

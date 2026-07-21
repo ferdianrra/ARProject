@@ -72,7 +72,8 @@ struct ButterflyFactSheetView: View {
                         
                         // Page Dots Indicator
                         HStack(spacing: 6) {
-                            ForEach(0...facts.count, id: \.self) { idx in
+                            let totalDots = manager.isFirstDiscoveryFact ? facts.count + 1 : facts.count
+                            ForEach(0..<totalDots, id: \.self) { idx in
                                 Capsule()
                                     .fill(idx == currentIndex ? Color.orange : Color.primary.opacity(0.2))
                                     .frame(width: idx == currentIndex ? 18 : 6, height: 6)
@@ -99,11 +100,19 @@ struct ButterflyFactSheetView: View {
                             }
                             
                             Button(action: {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                    currentIndex += 1
+                                if currentIndex < facts.count - 1 {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        currentIndex += 1
+                                    }
+                                } else if manager.isFirstDiscoveryFact && currentIndex == facts.count - 1 {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        currentIndex += 1
+                                    }
+                                } else {
+                                    dismissModal()
                                 }
                             }) {
-                                Text(currentIndex == facts.count - 1 ? "Make Friends" : "Next")
+                                Text(currentIndex == facts.count - 1 ? (manager.isFirstDiscoveryFact ? "Make Friends" : "Got it") : "Next")
                                     .font(.system(size: 15, weight: .bold, design: .rounded))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -137,46 +146,56 @@ struct ButterflyFactSheetView: View {
                         
                         VStack(spacing: 12) {
                             // Smile Option Card
-                            HStack(spacing: 14) {
-                                Text("😆")
-                                    .font(.system(size: 28))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Smile")
-                                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                            Button(action: {
+                                onDecision(.accepted)
+                            }) {
+                                HStack(spacing: 14) {
+                                    Text("😆")
+                                        .font(.system(size: 28))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Smile")
+                                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                                            .foregroundColor(.green)
+                                        Text("Accept friendship")
+                                            .font(.system(size: 13, weight: .regular, design: .rounded))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 20))
                                         .foregroundColor(.green)
-                                    Text("Accept friendship")
-                                        .font(.system(size: 13, weight: .regular, design: .rounded))
-                                        .foregroundColor(.secondary)
                                 }
-                                Spacer()
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.green)
+                                .padding(14)
+                                .background(Color.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.green.opacity(0.3), lineWidth: 1))
                             }
-                            .padding(14)
-                            .background(Color.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.green.opacity(0.3), lineWidth: 1))
+                            .buttonStyle(.plain)
                             
                             // Frown Option Card
-                            HStack(spacing: 14) {
-                                Text("☹️")
-                                    .font(.system(size: 28))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Frown or Scrunch Nose")
-                                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                            Button(action: {
+                                onDecision(.rejected)
+                            }) {
+                                HStack(spacing: 14) {
+                                    Text("☹️")
+                                        .font(.system(size: 28))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Frown or Scrunch Nose")
+                                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                                            .foregroundColor(.red)
+                                        Text("Decline friendship")
+                                            .font(.system(size: 13, weight: .regular, design: .rounded))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 20))
                                         .foregroundColor(.red)
-                                    Text("Decline friendship")
-                                        .font(.system(size: 13, weight: .regular, design: .rounded))
-                                        .foregroundColor(.secondary)
                                 }
-                                Spacer()
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.red)
+                                .padding(14)
+                                .background(Color.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.3), lineWidth: 1))
                             }
-                            .padding(14)
-                            .background(Color.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.3), lineWidth: 1))
+                            .buttonStyle(.plain)
                         }
                     }
                     .transition(.asymmetric(
