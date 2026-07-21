@@ -26,6 +26,8 @@ struct ARViewContainer: UIViewRepresentable {
 
         arView.session.delegate = context.coordinator
         arView.session.run(config)
+        // Store reference so PlacementController can raycast from tap point
+        manager.arView = arView
 
         let camAnchor = AnchorEntity(.camera)
         arView.scene.addAnchor(camAnchor)
@@ -74,50 +76,77 @@ struct ARViewContainer: UIViewRepresentable {
             }
         }
 
+        // MARK: - Per-frame floor check (called from SceneEvents.Update)
         func checkForFloorUnderCamera() {
-            guard manager.isCoaching, let arView = arView, let camAnchor = camAnchor else { return }
-            
-            let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
-            var results = arView.raycast(from: center, allowing: .existingPlaneGeometry, alignment: .horizontal)
-            if results.isEmpty {
-                results = arView.raycast(from: center, allowing: .existingPlaneInfinite, alignment: .horizontal)
+            // Run during coaching phase AND during portal-guide phase (until placed)
+            guard !manager.isPlaced, let arView = arView, let camAnchor = camAnchor else {
+                // Already placed — ensure portals are gone
+                manager.isFloorTargeted = false
+                return
             }
-            
+
+            let center = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
+            // existingPlaneGeometry only — no infinite fallback.
+            // If camera isn't directly over real floor geometry, indicator hides.
+            let results = arView.raycast(from: center, allowing: .existingPlaneGeometry, alignment: .horizontal)
+
             guard let firstResult = results.first,
-                  let planeAnchor = firstResult.anchor as? ARPlaneAnchor else { return }
-            
+                  let planeAnchor = firstResult.anchor as? ARPlaneAnchor else {
+                // No plane under camera center → hide portals, show guidance label
+                DispatchQueue.main.async { [weak self] in
+                    self?.manager.isFloorTargeted = false
+                }
+                return
+            }
+
             let planeHeight = planeAnchor.transform.columns.3.y
-            
+
             var isValidFloor = false
             if ARPlaneAnchor.isClassificationSupported {
                 switch planeAnchor.classification {
                 case .floor:
-                    // If classified as floor, ensure it's not unreasonably high (must be at least 50cm below camera)
+                    // Classified as floor: must be at least 50cm below camera start
                     isValidFloor = planeHeight <= -0.5
                 case .none(_):
-                    // If undetermined/unknown/notAvailable, must be at least 80cm below initial camera
-                    isValidFloor = planeHeight <= -0.8
+                    // Unclassified: stricter threshold of 1.0m to reject tables (~75cm)
+                    isValidFloor = planeHeight <= -1.0
                 default:
-                    // Explicitly classified as table, seat, wall, etc. -> REJECT
+                    // Explicitly table, seat, wall, etc. → reject
                     isValidFloor = false
                 }
             } else {
-                // Device doesn't support classification: must be at least 80cm below initial camera
+                // Classification not supported: use height fallback
                 isValidFloor = planeHeight <= -0.8
             }
-            
+
             if isValidFloor {
+                // Extract world position of the raycast hit point
+                let worldPos = SIMD3<Float>(
+                    firstResult.worldTransform.columns.3.x,
+                    firstResult.worldTransform.columns.3.y,
+                    firstResult.worldTransform.columns.3.z
+                )
+
                 DispatchQueue.main.async { [weak self] in
-                    guard let self = self, self.manager.isCoaching else { return }
-                    
-                    withAnimation {
-                        self.manager.isCoaching = false
+                    guard let self = self else { return }
+
+                    // Update state so ContentView shows portals + correct label
+                    self.manager.isFloorTargeted = true
+
+                    // If still in coaching phase → dismiss coaching and setup anchors
+                    if self.manager.isCoaching {
+                        withAnimation {
+                            self.manager.isCoaching = false
+                        }
+                        let planeAnchorEntity = AnchorEntity(anchor: planeAnchor)
+                        arView.scene.addAnchor(planeAnchorEntity)
+                        self.manager.setup(cameraAnchor: camAnchor, planeAnchor: planeAnchorEntity)
                     }
-                    
-                    let planeAnchorEntity = AnchorEntity(anchor: planeAnchor)
-                    arView.scene.addAnchor(planeAnchorEntity)
-                    
-                    self.manager.setup(cameraAnchor: camAnchor, planeAnchor: planeAnchorEntity)
+                }
+            } else {
+                // Floor not valid under camera — hide portals, show guidance label
+                DispatchQueue.main.async { [weak self] in
+                    self?.manager.isFloorTargeted = false
                 }
             }
         }
@@ -127,11 +156,11 @@ struct ARViewContainer: UIViewRepresentable {
                 if self.manager.anchorRef != nil {
                     self.manager.isCoaching = false
                 } else {
-                    // Table/other plane was detected but not validated as a floor.
-                    // Reactivate coaching overlay to keep scanning.
+                    // No valid floor confirmed yet — keep coaching active
                     coachingOverlayView.setActive(true, animated: true)
                 }
             }
         }
     }
 }
+
