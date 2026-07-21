@@ -20,6 +20,7 @@ class ARManager: NSObject, ObservableObject {
     @Published var isFactQuestionActive: Bool = false
     @Published var isFirstDiscoveryFact: Bool = false
     @Published var currentFactSpot: ARSpot? = nil
+    @Published var currentLifeCyclePhase: Int = 1
 
     
     var subscriptions: [AnyCancellable] = [] 

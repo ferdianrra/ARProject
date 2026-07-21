@@ -103,22 +103,42 @@ struct ContentView : View {
                     .zIndex(1)
             } else if manager.isPlaced && !manager.isFeedingActive {
                 if manager.isTooFar {
-                    InformationContainer(
-                        message: "Get closer to play!",
-                        isWarning: true,
-                        showButton: false,
-                        alignment: .top
-                    )
+                    VStack(spacing: 12) {
+                        InformationContainer(
+                            message: "Get closer to play!",
+                            isWarning: true,
+                            showButton: false,
+                            alignment: .top
+                        )
+                    }
+                    .padding(.top, 48)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .transition(.opacity)
                     .animation(.easeInOut, value: manager.isTooFar)
                     .zIndex(2)
                 } else {
-                    InformationContainer(
-                        message: topInstructionText(for: panelState),
-                        isWarning: false,
-                        showButton: false,
-                        alignment: .top
-                    )
+                    VStack(spacing: 12) {
+                        InformationContainer(
+                            message: topInstructionText(for: panelState),
+                            isWarning: false,
+                            showButton: false,
+                            alignment: .top
+                        )
+                        
+                        if panelState == .lifeCycleMode {
+                            Text(lifeCyclePhaseMessage(for: manager.currentLifeCyclePhase))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color(red: 0.15, green: 0.70, blue: 0.35), in: Capsule())
+                                .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                                .animation(.spring(), value: manager.currentLifeCyclePhase)
+                        }
+                    }
+                    .padding(.top, 48)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .animation(.easeInOut(duration: 0.3), value: panelState)
                     .transition(.opacity)
                     .animation(.easeInOut, value: manager.isTooFar)
@@ -226,6 +246,15 @@ struct ContentView : View {
             return "Hold out your hand to feed the butterfly!"
         default:
             return "Explore the animal! Walk out of the arena to exit."
+        }
+    }
+    
+    private func lifeCyclePhaseMessage(for phase: Int) -> String {
+        switch phase {
+        case 1: return "Look, a tiny egg!"
+        case 2: return "It hatched into a caterpillar!"
+        case 3: return "It's forming a chrysalis..."
+        default: return "All grown up into a butterfly!"
         }
     }
 }

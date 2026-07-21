@@ -111,8 +111,15 @@ class LifeCycleController {
         
         if animalName == "butterfly_egg.usdz" {
             let rotX = simd_quatf(angle: .pi, axis: [1, 0, 0])
-            let rotY = simd_quatf(angle: 90.0 * .pi / 180.0, axis: [0, 1, 0])
+            let rotY = simd_quatf(angle: 30.0 * .pi / 180.0, axis: [0, 1, 0])
             loadedAnimal.orientation *= (rotX * rotY)
+        } else if animalName == "Pupa_of_Graphium_agamemnon.usdz" {
+            let rotZ = simd_quatf(angle: 90.0 * .pi / 180.0, axis: [0, 0, 1])
+            let rotY = simd_quatf(angle: 90.0 * .pi / 180.0, axis: [0, 1, 0])
+            loadedAnimal.orientation *= (rotZ * rotY)
+        } else if animalName == "Caterpillar_and_leaf.usdz" {
+            let rotZ = simd_quatf(angle: -45.0 * .pi / 180.0, axis: [0, 0, 1])
+            loadedAnimal.orientation *= rotZ
         }
         
         manager.baseRotation = loadedAnimal.orientation
