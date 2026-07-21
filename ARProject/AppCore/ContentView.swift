@@ -102,7 +102,21 @@ struct ContentView : View {
                     .transition(.opacity)
                     .zIndex(1)
             } else if manager.isPlaced && !manager.isFeedingActive {
-                if manager.isTooFar {
+                if manager.spots.contains(where: { $0.isLockedNear }) {
+                    VStack(spacing: 12) {
+                        InformationContainer(
+                            message: "Coming soon! New habitat unlocking in future updates.",
+                            isWarning: false,
+                            showButton: false,
+                            alignment: .top
+                        )
+                    }
+                    .padding(.top, 48)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .transition(.opacity)
+                    .animation(.easeInOut, value: manager.spots.contains(where: { $0.isLockedNear }))
+                    .zIndex(2)
+                } else if manager.isTooFar {
                     VStack(spacing: 12) {
                         InformationContainer(
                             message: "Get closer to play!",
@@ -237,6 +251,10 @@ struct ContentView : View {
     }
 
     private func topInstructionText(for state: PanelState) -> String {
+        if manager.spots.contains(where: { $0.isLockedNear }) {
+            return "Coming soon! New habitat unlocking in future updates."
+        }
+        
         switch state {
         case .lifeCycleMode:
             return "Slide the bar to see animal phases! The animal is in the center of the habitat."

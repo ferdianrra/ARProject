@@ -18,6 +18,8 @@ class HabitatController {
         brownMaterial.faceCulling = .none
         brownMaterial.blending = .transparent(opacity: .init(floatLiteral: 0.85))
         
+        let lockTemplate = try? Entity.load(named: "lock.usdz")
+        
         for spot in spots {
             let circle = ModelEntity(mesh: circleMesh, materials: [brownMaterial])
             circle.position = [spot.center.x, 0.02, spot.center.z]
@@ -25,6 +27,14 @@ class HabitatController {
             planeAnchor.addChild(circle)
             spot.circleEntity = circle
             self.circleEntities.append(circle)
+            
+            if spot.isLocked, let template = lockTemplate {
+                let lockEntity = template.clone(recursive: true)
+                lockEntity.scale = SIMD3<Float>(repeating: 0.003)
+                lockEntity.position = [spot.center.x, 0.25, spot.center.z]
+                planeAnchor.addChild(lockEntity)
+                spot.lockEntity = lockEntity
+            }
         }
         
         let xLineMesh = MeshResource.generateBox(width: 1.2, height: 0.002, depth: 0.005)

@@ -63,10 +63,10 @@ class ARManager: NSObject, ObservableObject {
     let headGestureController = HeadGestureController()
     
     var spots: [ARSpot] = [
-        ARSpot(id: 0, center: [-0.6, 0.05, -0.6]),
-        ARSpot(id: 1, center: [ 0.6, 0.05, -0.6]),
-        ARSpot(id: 2, center: [-0.6, 0.05,  0.6]),
-        ARSpot(id: 3, center: [ 0.6, 0.05,  0.6])
+        ARSpot(id: 0, center: [-0.6, 0.05, -0.6], isLocked: true),
+        ARSpot(id: 1, center: [ 0.6, 0.05, -0.6], isLocked: true),
+        ARSpot(id: 2, center: [-0.6, 0.05,  0.6], isLocked: false),
+        ARSpot(id: 3, center: [ 0.6, 0.05,  0.6], isLocked: true)
     ]
     
     var parentContainer = Entity()

@@ -50,6 +50,7 @@ final class PlacementController {
                 manager.coloredButterflyTemplate = template.clone(recursive: true)
                 
                 for spot in manager.spots {
+                    guard !spot.isLocked else { continue }
                     let blackButterfly = template.clone(recursive: true)
                     manager.habitatController.setEntityColor(blackButterfly, color: .black)
                     manager.wanderController.stopAllAnimationsRecursive(blackButterfly)
@@ -67,7 +68,8 @@ final class PlacementController {
                 manager.flowerHabitatTemplate = flowerTemplate
                 
                 for spot in manager.spots {
-                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0012, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    guard !spot.isLocked else { continue }
+                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
                 }
             } catch {
                 print("error load flower_habitat.usdz: \(error)")

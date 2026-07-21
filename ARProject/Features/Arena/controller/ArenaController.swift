@@ -54,7 +54,19 @@ final class ArenaController {
                 closestDistance = distance
             }
 
-            let radiusThreshold: Float = spot.isNear ? 1.5 : 0.25
+            if spot.isLocked {
+                if distance < 0.6 {
+                    if !spot.isLockedNear {
+                        spot.isLockedNear = true
+                        manager.triggerFeedback(message: nil, tone: .negative, haptic: .warning, sound: .negativeBuzz)
+                    }
+                } else {
+                    spot.isLockedNear = false
+                }
+                continue
+            }
+
+            let radiusThreshold: Float = spot.isNear ? 1.5 : 0.6
 
             if distance < radiusThreshold {
                 if activeSpot == nil || activeSpot?.id == spot.id {
@@ -97,7 +109,7 @@ final class ArenaController {
                     spot.isNear = false
                     manager.wanderController.stopWandering(at: spot)
                     manager.habitatController.animateCircleScale(for: spot, to: 0.25)
-                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0012, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
 
                     // Re-enable black butterfly silhouette when out of arena
                     spot.blackButterfly?.isEnabled = true
@@ -122,12 +134,14 @@ final class ArenaController {
                     spot.circleEntity?.isEnabled = false
                     spot.blackButterfly?.isEnabled = false
                     spot.activeButterfly?.isEnabled = false
+                    spot.lockEntity?.isEnabled = false
                     for flower in spot.scatteredFlowers {
                         flower.isEnabled = false
                     }
                 } else {
                     spot.circleEntity?.isEnabled = true
                     spot.activeButterfly?.isEnabled = true
+                    spot.lockEntity?.isEnabled = spot.isLocked
                     for flower in spot.scatteredFlowers {
                         flower.isEnabled = true
                     }
@@ -144,6 +158,7 @@ final class ArenaController {
             }
             for spot in manager.spots {
                 spot.circleEntity?.isEnabled = true
+                spot.lockEntity?.isEnabled = spot.isLocked
                 for flower in spot.scatteredFlowers {
                     flower.isEnabled = true
                 }
@@ -151,7 +166,7 @@ final class ArenaController {
                     spot.blackButterfly?.isEnabled = false
                     spot.activeButterfly?.isEnabled = true
                 } else {
-                    spot.blackButterfly?.isEnabled = true
+                    spot.blackButterfly?.isEnabled = !spot.isLocked
                     spot.activeButterfly?.isEnabled = false
                 }
             }
