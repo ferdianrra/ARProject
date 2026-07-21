@@ -30,7 +30,7 @@ class ARManager: NSObject, ObservableObject {
     var baseRotation: simd_quatf = .init(angle: 0, axis: [0, 1, 0])
     
     var animalEntity: Entity? {
-        return spots.first(where: { $0.isNear })?.activeButterfly
+        return spots.first(where: { $0.isNear })?.animalModel
     }
     
     private var isSpawningAnimal = false
@@ -41,6 +41,8 @@ class ARManager: NSObject, ObservableObject {
     var butterflyWingAudio: AudioFileResource?
     private var positiveChimeAudio: AudioFileResource?
     private var negativeBuzzAudio: AudioFileResource?
+    
+    var butterflyTemplate: ModelEntity?
     
     var anchorRef: AnchorEntity?
     var faceAnchor: AnchorEntity?
@@ -106,6 +108,27 @@ class ARManager: NSObject, ObservableObject {
         camera.playAudio(resource)
     }
     
+    func createSpatialAudio(audioName: String) -> Entity {
+        let audioSource = Entity()
+        
+        audioSource.spatialAudio = SpatialAudioComponent(
+            gain: 0,
+            directLevel: .zero,
+            reverbLevel: .zero,
+            directivity: .beam(focus: 0.3),
+            distanceAttenuation: .rolloff(factor: 1.0)
+        )
+        
+        do {
+            let resource = try AudioFileResource.load(named: audioName, configuration: .init(shouldLoop: true))
+            audioSource.playAudio(resource)
+        } catch {
+            print("Error loading audio file: \(error.localizedDescription)")
+        }
+        
+        return audioSource
+    }
+    
     func spawnCube(name animalName: String, on pAnchor: AnchorEntity) {
         let loadedAnimal: Entity
         
@@ -130,13 +153,16 @@ class ARManager: NSObject, ObservableObject {
         for spot in spots {
             spot.wanderTimer?.invalidate()
             spot.wanderTimer = nil
-            spot.wingAudioController?.stop()
-            spot.wingAudioController = nil
+//            spot.wingAudioController?.stop()
+//            spot.wingAudioController = nil
             
-            spot.activeButterfly?.removeFromParent()
-            spot.activeButterfly = nil
-            spot.blackButterfly?.removeFromParent()
-            spot.blackButterfly = nil
+//            spot.spatialAudioEntity?.removeFromParent()
+//            spot.spatialAudioEntity = nil
+            
+            spot.animalModel?.removeFromParent()
+            spot.animalModel = nil
+            spot.reflectiveAnimal?.removeFromParent()
+            spot.reflectiveAnimal = nil
             
             for flower in spot.scatteredFlowers {
                 flower.removeFromParent()
@@ -186,6 +212,31 @@ class ARManager: NSObject, ObservableObject {
 
     }
     
+    // ARManager.swift
+//    func heightOffset(for animalTypeName: String) -> Float {
+//        switch animalTypeName {
+//        case "butterfly": return 2.5
+//        case "Lioness": return 0.01
+//        case "Wolf": return 0.0
+//        case "MountainGoat": return 0.01
+//        default: return 0.2
+//        }
+//    }
+    
+    func heightOffset(for spot: ARSpot) -> Float {
+        if spot.animalTypeName == "butterfly" {
+            return 2.5 // Ketinggian terbang kupu-kupu dari ground
+        } else {
+            return spot.groundOffset 
+        }
+    }
+    
+    func flightExtra(for animalTypeName: String) -> Float {
+        switch animalTypeName {
+        case "butterfly": return 1.5   // flies above the flowers
+        default: return 0              // ground animals: no extra lift
+        }
+    }
     
     deinit {
         for spot in spots {

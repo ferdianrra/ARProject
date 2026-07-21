@@ -95,7 +95,7 @@ class FactController {
     }
 
     func spawnEmoji(emoji: String, at spot: ARSpot) {
-        guard let butterfly = spot.activeButterfly ?? spot.blackButterfly else { return }
+        guard let butterfly = spot.animalModel ?? spot.reflectiveAnimal else { return }
         
         let existing = butterfly.children.filter { $0.name.hasPrefix("decisionEmoji_") }
         for child in existing { child.removeFromParent() }

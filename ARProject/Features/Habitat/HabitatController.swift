@@ -122,4 +122,25 @@ class HabitatController {
             setEntityColor(child, color: color)
         }
     }
+    
+    func setReflective(_ entity: Entity) {
+        applyReflectiveRecursive(entity)
+    }
+
+    private func applyReflectiveRecursive(_ entity: Entity) {
+        if var modelComponent = entity.components[ModelComponent.self] {
+            modelComponent.materials = modelComponent.materials.map { _ in
+                var reflectiveMaterial = PhysicallyBasedMaterial()
+                reflectiveMaterial.metallic = .init(floatLiteral: 1.0)
+                reflectiveMaterial.roughness = .init(floatLiteral: 0.0)
+                reflectiveMaterial.baseColor = .init(tint: .white)
+                return reflectiveMaterial
+            }
+            entity.components[ModelComponent.self] = modelComponent
+        }
+        
+        for child in entity.children {
+            applyReflectiveRecursive(child)
+        }
+    }
 }
