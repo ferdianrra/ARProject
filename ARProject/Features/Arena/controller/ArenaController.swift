@@ -120,8 +120,8 @@ final class ArenaController {
                     //                    spot.wingAudioController?.stop()
                     //                    spot.wingAudioController = nil
                     
-                    spot.spatialAudioEntity?.removeFromParent()
-                    spot.spatialAudioEntity = nil
+//                    spot.spatialAudioEntity?.removeFromParent()
+//                    spot.spatialAudioEntity = nil
                 }
             }
         }

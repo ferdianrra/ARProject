@@ -120,6 +120,11 @@ final class PlacementController {
                         spot.reflectiveAnimal = reflectiveAnimal
                         
                         
+                        if !spot.audioName.isEmpty {
+                            let audioEntity = manager.createSpatialAudio(audioName: spot.audioName)
+                            reflectiveAnimal.addChild(audioEntity)
+                            spot.spatialAudioEntity = audioEntity
+                        }
                         
                     } catch {
                         print("error loading \(animalName): \(error)")

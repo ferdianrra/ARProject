@@ -112,10 +112,10 @@ class ARManager: NSObject, ObservableObject {
         let audioSource = Entity()
         
         audioSource.spatialAudio = SpatialAudioComponent(
-            gain: +2,
+            gain: 0,
             directLevel: .zero,
             reverbLevel: .zero,
-            directivity: .beam(focus: 0.5),
+            directivity: .beam(focus: 0.3),
             distanceAttenuation: .rolloff(factor: 1.0)
         )
         
