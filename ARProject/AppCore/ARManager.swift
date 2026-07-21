@@ -4,7 +4,7 @@ import ARKit
 import Combine
 
 
-class ARManager: ObservableObject {
+class ARManager: NSObject, ObservableObject {
     @Published var distanceText: String = "Find me!stop"
     @Published var currentAnimalName: String = ""
     @Published var isCoaching: Bool = true
@@ -15,6 +15,10 @@ class ARManager: ObservableObject {
     
     @Published var isFeedingActive: Bool = false
     @Published var feedingOverlayState: FeedingOverlayState = .reaching
+
+    @Published var showFactSheet: Bool = false
+    @Published var isFactQuestionActive: Bool = false
+    @Published var currentFactSpot: ARSpot? = nil
 
     
     var subscriptions: [AnyCancellable] = [] 
@@ -38,7 +42,9 @@ class ARManager: ObservableObject {
     private var negativeBuzzAudio: AudioFileResource?
     
     var anchorRef: AnchorEntity?
+    var faceAnchor: AnchorEntity?
     var auraTimer: Timer?
+    var arSession: ARSession?
     
     let habitatController = HabitatController()
     let wanderController = WanderController()
@@ -52,6 +58,7 @@ class ARManager: ObservableObject {
     // Core placement & exploration controllers
     lazy var placementController: PlacementController = PlacementController(manager: self)
     lazy var arenaController: ArenaController = ArenaController(manager: self)
+    let headGestureController = HeadGestureController()
     
     var spots: [ARSpot] = [
         ARSpot(id: 0, center: [-0.6, 0.05, -0.6]),
@@ -120,6 +127,7 @@ class ARManager: ObservableObject {
         self.anchorRef = planeAnchor
         
         planeAnchor.addChild(parentContainer)
+        setupHeadGestureListener()
         
         do {
             self.butterflyWingAudio = try AudioFileResource.load(

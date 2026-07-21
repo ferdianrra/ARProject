@@ -19,5 +19,7 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi membutuhkan akses kamera untuk fitur AR dan pelacakan gestur kepala.</string>
 </dict>
 </plist>

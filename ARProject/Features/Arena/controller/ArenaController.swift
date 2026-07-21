@@ -36,9 +36,8 @@ final class ArenaController {
         let cameraPosition = camAnchor.position(relativeTo: nil)
         let cameraFlat = SIMD2<Float>(cameraPosition.x, cameraPosition.z)
         
-        if manager.showFacts {
-            manager.factController.updateBillboards(cameraAnchor: camAnchor, animal: manager.animalEntity)
-        }
+        manager.processFaceGestureIfNeeded()
+        manager.factController.updateBillboards(cameraAnchor: camAnchor, animal: manager.animalEntity)
         
         var closestDistance = Float.infinity
         let activeSpot = manager.spots.first(where: { $0.isNear })
@@ -79,6 +78,10 @@ final class ArenaController {
 
                         if isFirstDiscovery {
                             manager.triggerFeedback(tone: .positive, haptic: .success, sound: .positiveChime)
+                            DispatchQueue.main.async {
+                                manager.currentFactSpot = spot
+                                manager.showFactSheet = true
+                            }
                         }
                     }
                 }

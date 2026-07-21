@@ -19,55 +19,11 @@ struct ContentView : View {
     
     var body: some View {
         ZStack {
-            RealityView { content in
-                let camAnchor = AnchorEntity(.camera)
-                content.add(camAnchor)
-                manager.cameraAnchor = camAnchor
-
-                // Create horizontal plane anchor for the content
-                let anchor = AnchorEntity(.plane(.horizontal, classification: .any, minimumBounds: SIMD2<Float>(0.2, 0.2)))
-                
-                // Add the horizontal plane anchor to the scene
-                content.add(anchor)
-                content.camera = .spatialTracking
-                
-                let configuration = SpatialTrackingSession.Configuration(
-                    tracking: [.plane],
-                    sceneUnderstanding: [.occlusion, .physics, .collision, .shadow],
-                    camera: .back
-                )
-                Task {
-                    await trackingSession.run(configuration)
+            ARViewContainer(manager: manager)
+                .ignoresSafeArea()
+                .onChange(of: manager.showFacts) { show in
+                    manager.toggleFacts(show: show)
                 }
-
-                // Subscribe to anchor events to know when the plane is found
-                let sub = content.subscribe(to: SceneEvents.AnchoredStateChanged.self) { event in
-                    if event.isAnchored && event.anchor == anchor {
-                        DispatchQueue.main.async {
-                            if manager.isCoaching { // Only trigger the first time it anchors
-                                withAnimation {
-                                    manager.isCoaching = false
-                                }
-                                
-                                // Create a static world anchor at the plane's current position so it never moves
-                                let staticAnchor = AnchorEntity(world: anchor.transformMatrix(relativeTo: nil))
-                                anchor.scene?.addAnchor(staticAnchor)
-                                
-                                manager.setup(cameraAnchor: camAnchor, planeAnchor: staticAnchor)
-                            }
-                        }
-                    }
-                }
-                manager.eventSubscriptions.append(sub)
-                
-                let updateSub = content.subscribe(to: SceneEvents.Update.self) { _ in
-                    manager.updateScene()
-                }
-                manager.eventSubscriptions.append(updateSub)
-            }
-            .onChange(of: manager.showFacts) { show in
-                manager.toggleFacts(show: show)
-            }
             .onChange(of: manager.isTooFar) { tooFar in
                 if tooFar {
                     withAnimation {
@@ -202,7 +158,33 @@ struct ContentView : View {
                     }
                     Spacer()
                 }
-                .zIndex(5)
+            }
+            
+            if manager.showFactSheet, let spot = manager.currentFactSpot {
+                ButterflyFactSheetView(
+                    isPresented: $manager.showFactSheet,
+                    isQuestionActive: $manager.isFactQuestionActive,
+                    onDecision: { decision in
+                        manager.handleFactDecision(decision, spot: spot)
+                    }
+                )
+                .environmentObject(manager)
+                .zIndex(6)
+                .transition(.opacity)
+            }
+
+            if let event = manager.feedbackEvent, event.message != nil {
+                VStack {
+                    FeedbackToastView(event: event) {
+                        withAnimation {
+                            manager.feedbackEvent = nil
+                        }
+                    }
+                    .padding(.top, 50)
+                    Spacer()
+                }
+                .zIndex(10)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
     }
@@ -221,7 +203,3 @@ struct CircleGuideView: View {
         }
     }
 }
-
-//#Preview {
-//    ContentView()
-//}
