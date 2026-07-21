@@ -46,20 +46,32 @@ final class PlacementController {
         Task { [weak manager] in
             guard let manager = manager else { return }
             do {
-                let template = try await Entity(named: "butterfly", in: nil)
-                manager.coloredButterflyTemplate = template.clone(recursive: true)
+                let animals = ["butterfly", "Lioness", "Mountain_Goat", "Wolf"]
                 
-                for spot in manager.spots {
-                    let blackButterfly = template.clone(recursive: true)
-                    manager.habitatController.setEntityColor(blackButterfly, color: .black)
-                    manager.wanderController.stopAllAnimationsRecursive(blackButterfly)
-                    blackButterfly.scale = SIMD3<Float>(repeating: 0.0008)
-                    blackButterfly.position = spot.center
-                    manager.parentContainer.addChild(blackButterfly)
-                    spot.blackButterfly = blackButterfly
+                for animal in animals {
+                    let template = try await ModelEntity(named: animal, in: nil)
+                    //                    manager.coloredButterflyTemplate = template.clone(recursive: true)
+                    manager.coloredAnimalTemplate = template.clone(recursive: true)
+                    
+                    for spot in manager.spots {
+                        //                        let blackButterfly = template.clone(recursive: true)
+                        //                        manager.habitatController.setEntityColor(blackButterfly, color: .black)
+                        //                        manager.wanderController.stopAllAnimationsRecursive(blackButterfly)
+                        //                        blackButterfly.scale = SIMD3<Float>(repeating: 0.0008)
+                        //                        blackButterfly.position = spot.center
+                        //                        manager.parentContainer.addChild(blackButterfly)
+                        //                        spot.blackButterfly = blackButterfly
+                        
+                        let reflectiveAnimal = template.clone(recursive: true)
+                        manager.habitatController.setReflective(reflectiveAnimal)
+                        manager.wanderController.stopAllAnimationsRecursive(reflectiveAnimal)
+                        reflectiveAnimal.position = spot.center
+                        manager.parentContainer.addChild(reflectiveAnimal)
+                        spot.reflectiveAnimal = reflectiveAnimal
+                    }
                 }
             } catch {
-                print("error load butterfly.usdz: \(error)")
+                print("error load animals: \(error)")
             }
             
             do {

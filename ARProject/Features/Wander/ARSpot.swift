@@ -12,11 +12,20 @@ class ARSpot {
     var wanderTimer: Timer?
     var scatteredFlowers: [Entity] = []
     
+    var reflectiveAnimal:ModelEntity?
+    var animalModel: Entity?
+    var animalModelName: Entity?
+    
     var circleEntity: ModelEntity?
     var wingAudioController: AudioPlaybackController?
+    var audioName: String
 
-    init(id: Int, center: SIMD3<Float>) {
+    init(id: Int, center: SIMD3<Float>, animalModel: ModelEntity? = nil, audioName: String = "") {
         self.id = id
         self.center = center
+        self.hasVisited = false
+        self.animalModel = animalModel
+        self.audioName = audioName
+        
     }
 }

@@ -2,6 +2,7 @@ import RealityKit
 import Foundation
 
 class ResizeController {
+    
     func setScale(_ newScale: Float, on animal: Entity?) {
         guard let animal = animal else { return }
         // Base target scale is 0.001, so we multiply the newScale by 0.001

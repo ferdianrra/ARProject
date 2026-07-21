@@ -30,10 +30,22 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		01E5B294300F11BF0077B73E /* Exceptions for "ARProject" folder in "ARProjectUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/audio/lion.wav,
+				Resources/audio/sheep.flac,
+				Resources/audio/wolf.wav,
+			);
+			target = D69F35183005248A0076C0D2 /* ARProjectUITests */;
+		};
 		D69F35213005248A0076C0D2 /* Exceptions for "ARProject" folder in "ARProject" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Resources/audio/lion.wav,
+				Resources/audio/sheep.flac,
+				Resources/audio/wolf.wav,
 			);
 			target = D69F34FE300524890076C0D2 /* ARProject */;
 		};
@@ -44,6 +56,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				D69F35213005248A0076C0D2 /* Exceptions for "ARProject" folder in "ARProject" target */,
+				01E5B294300F11BF0077B73E /* Exceptions for "ARProject" folder in "ARProjectUITests" target */,
 			);
 			path = ARProject;
 			sourceTree = "<group>";
@@ -289,7 +302,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3SFYM6B225;
+				DEVELOPMENT_TEAM = KN6N26DLGL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ARProject/Info.plist;
@@ -326,7 +339,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3SFYM6B225;
+				DEVELOPMENT_TEAM = KN6N26DLGL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ARProject/Info.plist;

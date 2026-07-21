@@ -68,7 +68,7 @@ final class ArenaController {
                         if let existing = spot.activeButterfly {
                             existing.isEnabled = true
                             manager.wanderController.startWandering(existing, at: spot, anchor: manager.parentContainer)
-                        } else if let template = manager.coloredButterflyTemplate {
+                        } else if let template = manager.coloredAnimalTemplate {
                             manager.wanderController.spawnButterfly(at: spot, template: template, anchor: manager.parentContainer)
                         }
                         manager.habitatController.setFlowerHabitat(at: spot, count: 24, scale: 0.0012, scatteringRadius: 1.3, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)

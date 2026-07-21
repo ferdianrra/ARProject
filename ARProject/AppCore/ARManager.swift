@@ -31,7 +31,8 @@ class ARManager: ObservableObject {
     private var isSpawningAnimal = false
     private var distanceTimer: Timer?
     
-    var coloredButterflyTemplate: Entity?
+//    var coloredButterflyTemplate: Entity?
+    var coloredAnimalTemplate: ModelEntity?
     var flowerHabitatTemplate: Entity?
     var butterflyWingAudio: AudioFileResource?
     private var positiveChimeAudio: AudioFileResource?
@@ -54,7 +55,7 @@ class ARManager: ObservableObject {
     lazy var arenaController: ArenaController = ArenaController(manager: self)
     
     var spots: [ARSpot] = [
-        ARSpot(id: 0, center: [-0.6, 0.05, -0.6]),
+        ARSpot(id: 0, center: [-0.6, 0.05, -0.6], audioName: "butterflyWing.wav"),
         ARSpot(id: 1, center: [ 0.6, 0.05, -0.6]),
         ARSpot(id: 2, center: [-0.6, 0.05,  0.6]),
         ARSpot(id: 3, center: [ 0.6, 0.05,  0.6])

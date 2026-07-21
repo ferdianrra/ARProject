@@ -122,4 +122,23 @@ class HabitatController {
             setEntityColor(child, color: color)
         }
     }
+    
+    func setReflective(_ entity: ModelEntity) {
+        if var modelComponent = entity.model {
+            modelComponent.materials = modelComponent.materials.map { originalMaterial in
+                
+                var reflectiveMaterial = PhysicallyBasedMaterial()
+                
+                reflectiveMaterial.metallic = .init(floatLiteral: 1.0)
+                reflectiveMaterial.roughness = .init(floatLiteral: 0.0)
+                
+                reflectiveMaterial.baseColor = .init(tint: .white)
+                
+                return reflectiveMaterial
+            }
+            
+            entity.model = modelComponent
+        }
+//        return entity
+    }
 }
