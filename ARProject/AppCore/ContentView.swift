@@ -79,7 +79,7 @@ struct ContentView : View {
                         Rectangle()
                             .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round, dash: [5, 5]))
                             .foregroundColor(.orange.opacity(0.8))
-                            .frame(width: 150, height: 150)
+                            .frame(width: 250, height: 250)
                         
                         VStack {
                             HStack {
@@ -94,9 +94,9 @@ struct ContentView : View {
                                 CircleGuideView()
                             }
                         }
-                        .frame(width: 170, height: 170)
+                        .frame(width: 270, height: 270)
                     }
-                    .frame(width: 180, height: 180)
+                    .frame(width: 280, height: 280)
                     
                     Text("Tap screen to place the area")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
