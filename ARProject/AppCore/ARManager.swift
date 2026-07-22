@@ -45,6 +45,7 @@ class ARManager: NSObject, ObservableObject {
     
     var coloredButterflyTemplate: Entity?
     var flowerHabitatTemplate: Entity?
+    var grassHabitatTemplate: Entity?
     var butterflyWingAudio: AudioFileResource?
     private var positiveChimeAudio: AudioFileResource?
     private var negativeBuzzAudio: AudioFileResource?
@@ -175,6 +176,13 @@ class ARManager: NSObject, ObservableObject {
                 flower.removeFromParent()
             }
             spot.scatteredFlowers.removeAll()
+            
+            for grass in spot.scatteredGrass {
+                grass.removeFromParent()
+            }
+            spot.scatteredGrass.removeAll()
+            
+            
             
             spot.isNear = false
             spot.hasVisited = false

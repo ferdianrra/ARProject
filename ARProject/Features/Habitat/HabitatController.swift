@@ -104,6 +104,34 @@ class HabitatController {
         }
     }
     
+    func setGrassHabitat(at spot: ARSpot, count: Int, scale: Float, scatteringRadius: Float, template: Entity?, anchor: Entity) {
+        guard let template = template else { return }
+
+        for grass in spot.scatteredGrass {
+            grass.scale = SIMD3<Float>(repeating: scale)
+            let point = randomPointInCircle(radius: scatteringRadius)
+            grass.position = [spot.center.x + point.x, 0, spot.center.z + point.y]
+        }
+
+        if spot.scatteredGrass.count < count {
+            let needed = count - spot.scatteredGrass.count
+            for _ in 0..<needed {
+                let point = randomPointInCircle(radius: scatteringRadius)
+                let grass = template.clone(recursive: true)
+                grass.scale = SIMD3<Float>(repeating: scale)
+                grass.position = [spot.center.x + point.x, 0, spot.center.z + point.y]
+                grass.orientation = simd_quatf(angle: Float.random(in: 0..<(2 * Float.pi)), axis: [0, 1, 0])
+                anchor.addChild(grass)
+                spot.scatteredGrass.append(grass)
+            }
+        } else if spot.scatteredGrass.count > count {
+            let excess = spot.scatteredGrass.count - count
+            let toRemove = Array(spot.scatteredGrass.suffix(excess))
+            for grass in toRemove { grass.removeFromParent() }
+            spot.scatteredGrass.removeLast(excess)
+        }
+    }
+    
     private func randomPointInCircle(radius: Float) -> SIMD2<Float> {
         let angle = Float.random(in: 0..<(2 * Float.pi))
         let r = radius * sqrt(Float.random(in: 0...1))
