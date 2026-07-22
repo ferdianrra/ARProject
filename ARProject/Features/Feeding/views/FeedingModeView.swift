@@ -48,9 +48,6 @@ struct FeedingModeView: View {
     }
     
     private var messageText: String {
-        if let msg = manager.feedingSuccessMessage {
-            return msg
-        }
         switch manager.feedingOverlayState {
         case .reaching:
             return "Pinch and drag the food!"

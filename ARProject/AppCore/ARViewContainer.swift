@@ -158,12 +158,12 @@ struct ARViewContainer: UIViewRepresentable {
                 if !isCurrentlyPinched && relativeDistance < 0.35 {
                     isCurrentlyPinched = true
                     framesSincePinchLost = 0
-                } else if isCurrentlyPinched && relativeDistance > 0.65 {
+                } else if isCurrentlyPinched && relativeDistance > 0.85 {
                     framesSincePinchLost += 1
-                    if framesSincePinchLost > 8 {
+                    if framesSincePinchLost > 20 {
                         isCurrentlyPinched = false
                     }
-                } else if isCurrentlyPinched && relativeDistance <= 0.65 {
+                } else if isCurrentlyPinched && relativeDistance <= 0.85 {
                     framesSincePinchLost = 0
                 }
                 
@@ -174,7 +174,7 @@ struct ARViewContainer: UIViewRepresentable {
             } else {
                 if isCurrentlyPinched {
                     framesSincePinchLost += 1
-                    if framesSincePinchLost > 8 {
+                    if framesSincePinchLost > 20 {
                         isCurrentlyPinched = false
                     }
                 }
@@ -185,7 +185,7 @@ struct ARViewContainer: UIViewRepresentable {
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.manager.spots.contains(where: { $0.isNear }) else { return }
                 
-                if shouldCallAnimal && !self.manager.isFeedingActive {
+                if shouldCallAnimal {
                     self.callAnimalController.callAnimal(manager: self.manager)
                 }
                 

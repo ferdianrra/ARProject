@@ -28,6 +28,10 @@ class FeedingController {
         }
     }
     
+    func callAnimal(manager: ARManager) {
+        callAnimalController.callAnimal(manager: manager)
+    }
+
     func spawnFood(manager: ARManager) {
         guard foodEntities.isEmpty else { return } // Only spawn if empty
         
@@ -38,7 +42,8 @@ class FeedingController {
         
         guard let arView = manager.arView, let camera = manager.cameraAnchor, let animalSpot = manager.spots.first(where: { $0.isNear }) else { return }
         
-        let floorHeight = animalSpot.center.y // Using the animal's floor height
+        let spotWorldPos = manager.parentContainer.convert(position: animalSpot.center, to: nil)
+        let floorHeight = spotWorldPos.y
         let cameraHeight = camera.position(relativeTo: nil).y
         let targetHeight = floorHeight + (cameraHeight - floorHeight) * (2.0 / 3.0)
         let pillarHeight = targetHeight - floorHeight
@@ -46,43 +51,60 @@ class FeedingController {
         let forward = camera.orientation(relativeTo: nil).act(SIMD3<Float>(0, 0, -1))
         let flatForward = normalize(SIMD3<Float>(forward.x, 0, forward.z))
         
-        // Spawn 3 pillars
+        // Spawn 3 pillars with 3 different foods
         let angles: [Float] = [-(.pi / 6), 0, (.pi / 6)]
+        let foodNames = ["bread-food", "flower-food", "meat-food"]
         let desiredDistance: Float = 1.0
         let animalPos = animalSpot.center
         
         Task { @MainActor in
-            for angle in angles {
+            for (index, angle) in angles.enumerated() {
                 let rotation = simd_quatf(angle: angle, axis: SIMD3<Float>(0, 1, 0))
                 let direction = rotation.act(flatForward)
                 
                 var targetPosition = camera.position(relativeTo: nil) + direction * desiredDistance
                 targetPosition.y = targetHeight
                 
-                // Clamp to 1.5m boundary around animalSpot
-                let diff = targetPosition - animalPos
+                // Clamp to 1.0m boundary around animalSpot (using world coordinates) to ensure it stays well inside the arena
+                let animalWorldPos = spotWorldPos
+                let diff = targetPosition - animalWorldPos
                 let flatDiff = SIMD3<Float>(diff.x, 0, diff.z)
-                if length(flatDiff) > 1.5 {
-                    let clampedDiff = normalize(flatDiff) * 1.5
-                    targetPosition.x = animalPos.x + clampedDiff.x
-                    targetPosition.z = animalPos.z + clampedDiff.z
+                if length(flatDiff) > 1.0 {
+                    let clampedDiff = normalize(flatDiff) * 1.0
+                    targetPosition.x = animalWorldPos.x + clampedDiff.x
+                    targetPosition.z = animalWorldPos.z + clampedDiff.z
                 }
                 
                 let anchor = AnchorEntity(world: targetPosition)
                 arView.scene.addAnchor(anchor)
                 self.foodAnchors.append(anchor)
                 
+                let foodName = foodNames[index]
                 do {
-                    let food = try await ModelEntity(named: "flower_food")
+                    let foodModel = try await ModelEntity(named: foodName)
+                    let foodContainer = Entity()
+                    foodContainer.name = foodName
                     
-                    let bounds = food.visualBounds(relativeTo: food)
+                    let bounds = foodModel.visualBounds(relativeTo: foodModel)
                     let width = max(bounds.extents.x, bounds.extents.z)
+                    
                     if width > 0 {
-                        let scale = 0.25 / width
-                        food.scale = SIMD3<Float>(repeating: scale)
+                        var targetWidth: Float = 0.10
+                        if foodName == "bread-food" { targetWidth = 0.07 } // Bread is 7cm
+                        if foodName == "meat-food" { targetWidth = 0.13 } // Meat is 13cm
+                        
+                        let scale = targetWidth / width
+                        foodModel.scale = SIMD3<Float>(repeating: scale)
+                        
+                        // Mathematically center the visual mesh perfectly onto the container's origin!
+                        // This guarantees the hand attaches to the VISUAL center, not the model's empty-space origin.
+                        foodModel.position = -(bounds.center * scale)
+                        
+                        // Sit the container on top of the pillar
+                        foodContainer.position.y = (bounds.extents.y * scale) / 2.0
                     }
                     
-                    food.name = "FeedingFood" 
+                    foodContainer.addChild(foodModel)
                     
                     if pillarHeight > 0 {
                         let cylinderMesh = MeshResource.generateCylinder(height: pillarHeight, radius: 0.10)
@@ -96,15 +118,15 @@ class FeedingController {
                     let triggerMaterial = SimpleMaterial(color: .white.withAlphaComponent(0.0), isMetallic: false)
                     let trigger = ModelEntity(mesh: triggerMesh, materials: [triggerMaterial])
                     
-                    food.addChild(trigger)
+                    foodContainer.addChild(trigger)
                     
-                    self.foodEntities.append(food)
-                    anchor.addChild(food)
+                    self.foodEntities.append(foodContainer)
+                    anchor.addChild(foodContainer)
                     
                 } catch {
-                    print("Failed to load flower_food: \(error)")
+                    print("Failed to load \(foodName): \(error)")
                     let fallback = ModelEntity(mesh: .generateSphere(radius: 0.05), materials: [SimpleMaterial(color: .purple, isMetallic: false)])
-                    fallback.name = "FeedingFood"
+                    fallback.name = foodName
                     self.foodEntities.append(fallback)
                     anchor.addChild(fallback)
                 }
@@ -114,19 +136,7 @@ class FeedingController {
     
     // Boundary check called every frame
     func update(manager: ARManager) {
-        guard let camera = manager.cameraAnchor, let animalSpot = manager.spots.first(where: { $0.isNear }) else { return }
-        let cameraPos = camera.position(relativeTo: nil)
-        let animalPos = animalSpot.center
-        
-        let dx = cameraPos.x - animalPos.x
-        let dz = cameraPos.z - animalPos.z
-        let distance = hypot(dx, dz)
-        
-        if distance > 1.5 {
-            manager.isFeedingActive = false
-            manager.triggerFeedback(message: "You stepped out of the feeding zone", tone: .negative, haptic: .warning)
-            stopFeeding()
-        }
+        // Redundant boundary check removed! ArenaController handles the 1.5m boundary natively.
     }
     
     func stopFeeding() {
@@ -148,7 +158,12 @@ class FeedingController {
                 dropGrabbedFood(manager: manager)
             }
             wasGrabbing = isGrabbing
-            cursorEntity?.isEnabled = false
+            
+            // Only hide the cursor if we aren't grabbing anything. 
+            // If we are grabbing, keep it visible at its last known location to prevent flickering!
+            if !isGrabbing {
+                cursorEntity?.isEnabled = false
+            }
             return
         }
         
@@ -243,14 +258,34 @@ class FeedingController {
         wasGrabbing = isGrabbing
         
         if isGrabbing, let draggedFood = draggedFoodEntity {
-            manager.updateButterflyFlight(for: draggedFood, speed: butterflySpeed)
+            let animalName = manager.spots.first(where: { $0.isNear })?.animalTypeName ?? "animal"
+            let foodName = draggedFood.name
+            
+            let dietCheck = self.checkDiet(animal: animalName, food: foodName)
+            
+            // Only chase the food if it is the correct diet!
+            if dietCheck.isCorrect {
+                manager.updateButterflyFlight(for: draggedFood, speed: butterflySpeed)
+            }
             
             if let butterfly = manager.animalEntity {
                 let diff = butterfly.position(relativeTo: nil) - draggedFood.position(relativeTo: nil)
                 let dist = length(diff)
                 
-                // Butterfly is close enough to eat
-                if dist < 0.15 {
+                // Butterfly is close enough to eat (20cm distance for generous collision)
+                if dist < 0.20 {
+                    if !dietCheck.isCorrect {
+                        // Instant rejection for wrong food!
+                        manager.triggerFeedback(
+                            message: dietCheck.message, 
+                            tone: .negative, 
+                            haptic: .warning, 
+                            sound: .negativeBuzz
+                        )
+                        dropGrabbedFood(manager: manager, showFeedback: false)
+                        return
+                    }
+                    
                     if eatingStartedAt == nil {
                         eatingStartedAt = Date()
                         audioPlayer?.currentTime = 0
@@ -265,12 +300,17 @@ class FeedingController {
                         eatingStartedAt = nil
                         audioPlayer?.stop()
                         
-                        manager.feedingSuccessMessage = "Yum! Butterfly ate the flower!"
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            if manager.feedingSuccessMessage != nil {
-                                manager.feedingSuccessMessage = nil
-                            }
-                        }
+                        let animalName = manager.spots.first(where: { $0.isNear })?.animalTypeName ?? "animal"
+                        let foodName = draggedFood.name
+                        
+                        let dietCheck = self.checkDiet(animal: animalName, food: foodName)
+                        
+                        manager.triggerFeedback(
+                            message: dietCheck.message, 
+                            tone: dietCheck.isCorrect ? .positive : .negative, 
+                            haptic: dietCheck.isCorrect ? .success : .warning, 
+                            sound: dietCheck.isCorrect ? .positiveChime : .negativeBuzz
+                        )
                         
                         // Respawn if both eaten
                         if foodEntities.isEmpty {
@@ -285,18 +325,52 @@ class FeedingController {
         }
     }
     
-    private func dropGrabbedFood(manager: ARManager) {
+    
+    private func checkDiet(animal: String, food: String) -> (isCorrect: Bool, message: String) {
+        let lowerAnimal = animal.lowercased()
+        let lowerFood = food.lowercased()
+        
+        var diet = "Omnivore"
+        var allowedFoods: [String] = []
+        var eatsDescription = "both plants and meat"
+        
+        if lowerAnimal.contains("butterfly") {
+            diet = "Herbivore"
+            allowedFoods = ["flower-food"]
+            eatsDescription = "nectar from flowers"
+        } else if lowerAnimal.contains("lion") || lowerAnimal.contains("wolf") {
+            diet = "Carnivore"
+            allowedFoods = ["meat-food"]
+            eatsDescription = "meat"
+        } else if lowerAnimal.contains("goat") || lowerAnimal.contains("herbivore") {
+            diet = "Herbivore"
+            allowedFoods = ["flower-food", "bread-food"]
+            eatsDescription = "plants and bread"
+        } else {
+            // Fallback
+            allowedFoods = ["bread-food", "flower-food", "meat-food"]
+        }
+        
+        let isCorrect = allowedFoods.contains(lowerFood)
+        let cleanFoodName = lowerFood.replacingOccurrences(of: "-food", with: "")
+        
+        if isCorrect {
+            return (true, "Yum! Great Choice! I'm a \(diet), so I eat \(eatsDescription).")
+        } else {
+            return (false, "Eww... I'm a \(diet), I don't eat \(cleanFoodName)!")
+        }
+    }
+    
+    private func dropGrabbedFood(manager: ARManager, showFeedback: Bool = true) {
         if let draggedFood = draggedFoodEntity {
             draggedFood.removeFromParent()
             if let index = foodEntities.firstIndex(of: draggedFood) {
                 foodEntities.remove(at: index)
             }
-            // Alert user using the SwiftUI overlay (same as eating success message)
-            manager.feedingSuccessMessage = "Oh no! You dropped the flower!"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                if manager.feedingSuccessMessage == "Oh no! You dropped the flower!" {
-                    manager.feedingSuccessMessage = nil
-                }
+            
+            if showFeedback {
+                let cleanFoodName = draggedFood.name.replacingOccurrences(of: "-food", with: "")
+                manager.triggerFeedback(message: "Oh no! You dropped the \(cleanFoodName)!", tone: .negative, haptic: .warning, sound: .negativeBuzz)
             }
             
             self.draggedFoodEntity = nil // FIX: Reset dragged entity so another can be grabbed!

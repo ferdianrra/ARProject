@@ -18,9 +18,9 @@ class ARManager: NSObject, ObservableObject {
     
     @Published var isFeedingActive: Bool = false
     @Published var feedingOverlayState: FeedingOverlayState = .reaching
-    @Published var feedingSuccessMessage: String?
 
     @Published var showFactSheet: Bool = false
+    @Published var showFeedingGuide: Bool = false
     @Published var isFactQuestionActive: Bool = false
     @Published var isLockedNearActive: Bool = false
     @Published var isFirstDiscoveryFact: Bool = false

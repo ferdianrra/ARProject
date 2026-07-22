@@ -12,6 +12,7 @@ class ARSpot {
     var animalTemplate: ModelEntity?
     var spatialAudioEntity: Entity?
     var wanderTimer: Timer?
+    var movePlaybackController: AnimationPlaybackController?
     var scatteredFlowers: [Entity] = []
     
     var reflectiveAnimal: ModelEntity?

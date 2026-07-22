@@ -89,6 +89,8 @@ class CallAnimalController {
     private func scheduleWanderResume(manager: ARManager, spot: ARSpot, afterTravel travelDuration: TimeInterval = 0) {
         let workItem = DispatchWorkItem { [weak manager, weak spot] in
             guard let manager, let spot, spot.isNear, let animalModel = spot.animalModel else { return }
+            // Do not resume wandering if feeding mode is active!
+            if manager.isFeedingActive { return }
             manager.wanderController.startWandering(animalModel, at: spot, anchor: manager.parentContainer, yHeight: manager.heightOffset(for: spot))
         }
         pendingWanderResume = workItem
