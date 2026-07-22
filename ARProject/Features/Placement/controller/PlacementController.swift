@@ -172,6 +172,7 @@ final class PlacementController {
                         }
                         
                         spot.groundOffset = preciseGroundOffset
+                        spot.baseScale = SIMD3<Float>(repeating: scale)
 
                         print("\(animalName) scaled size: \(bounds.extents), groundOffset: \(preciseGroundOffset)")
                         
@@ -208,7 +209,9 @@ final class PlacementController {
                         
                         if !spot.audioName.isEmpty {
                             let audioEntity = manager.createSpatialAudio(audioName: spot.audioName)
-                            reflectiveAnimal.addChild(audioEntity)
+//                            reflectiveAnimal.addChild(audioEntity)
+                            audioEntity.position = SIMD3<Float>(spot.center.x, spot.groundOffset, spot.center.z)
+                            manager.parentContainer.addChild(audioEntity)
                             spot.spatialAudioEntity = audioEntity
                         }
                         

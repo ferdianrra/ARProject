@@ -20,7 +20,7 @@ class ArenaController {
             }
             manager.updateFeedingIfNeeded()
         }
-
+        
         let cameraPosition = camAnchor.position(relativeTo: nil)
         let cameraFlat = SIMD2<Float>(cameraPosition.x, cameraPosition.z)
         
@@ -32,7 +32,7 @@ class ArenaController {
         
         var closestDistance = Float.infinity
         let activeSpot = manager.spots.first(where: { $0.isNear })
-
+        
         for spot in manager.spots {
             let spotWorldPos = manager.parentContainer.convert(position: spot.center, to: nil)
             let spotFlat = SIMD2<Float>(spotWorldPos.x, spotWorldPos.z)
@@ -56,7 +56,7 @@ class ArenaController {
             }
 
             let radiusThreshold: Float = spot.isNear ? 1.5 : 0.6
-
+            
             if distance < radiusThreshold {
                 if activeSpot == nil || activeSpot?.id == spot.id {
                     if !spot.isNear {
@@ -67,6 +67,7 @@ class ArenaController {
                         spot.reflectiveAnimal?.isEnabled = false
                         
                         manager.habitatController.animateCircleScale(for: spot, to: 1.0)
+                        
                         
                         if spot.animalTypeName == "butterfly" {
                             if let existing = spot.animalModel {
@@ -79,19 +80,33 @@ class ArenaController {
                             if let existing = spot.animalModel {
                                 existing.isEnabled = true
                                 existing.position = SIMD3<Float>(spot.center.x, spot.groundOffset, spot.center.z)
+                                
+                                existing.scale = spot.baseScale
+                                var grown = existing.transform
+                                grown.scale = spot.baseScale * 2.0
+                                existing.move(to: grown, relativeTo: existing.parent, duration: 0.4, timingFunction: .easeInOut)
                             } else if let template = spot.animalTemplate {
                                 let animal = template.clone(recursive: true)
                                 animal.position = SIMD3<Float>(spot.center.x, spot.groundOffset, spot.center.z)
                                 manager.parentContainer.addChild(animal)
                                 spot.animalModel = animal
+                                
+                                var grown = animal.transform
+                                grown.scale = spot.baseScale * 2
+                                animal.move(to: grown, relativeTo: animal.parent, duration: 0.4, timingFunction: .easeInOut)
                             }
                         }
                         
-                        if !spot.audioName.isEmpty, let animalModel = spot.animalModel {
-                            let audioEntity = manager.createSpatialAudio(audioName: spot.audioName)
-                            animalModel.addChild(audioEntity)
-                            spot.spatialAudioEntity = audioEntity
-                        }
+//                        if !spot.audioName.isEmpty, let animalModel = spot.animalModel {
+//                            if let audioEntity = spot.spatialAudioEntity {
+//                                audioEntity.removeFromParent()
+//                                animalModel.addChild(audioEntity)
+//                            } else {
+//                                let audioEntity = manager.createSpatialAudio(audioName: spot.audioName)
+//                                animalModel.addChild(audioEntity)
+//                                spot.spatialAudioEntity = audioEntity
+//                            }
+//                        }
                         
                         if spot.animalTypeName == "butterfly" {
                             manager.habitatController.setFlowerHabitat(at: spot, count: 24, scale: 0.0028, scatteringRadius: 1.3, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
@@ -114,6 +129,17 @@ class ArenaController {
                     manager.habitatController.animateCircleScale(for: spot, to: 0.25)
                     if spot.animalTypeName == "butterfly" {
                         manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    }
+                    
+                    if spot.animalTypeName != "butterfly", let animalModel = spot.animalModel {
+                        var restoredTransform = animalModel.transform
+                        restoredTransform.scale = spot.baseScale
+                        animalModel.move(to: restoredTransform, relativeTo: animalModel.parent, duration: 0.4, timingFunction: .easeInOut)
+                    }
+                    
+                    if let audioEntity = spot.spatialAudioEntity, let reflective = spot.reflectiveAnimal {
+                        audioEntity.removeFromParent()
+                        reflective.addChild(audioEntity)
                     }
                 }
             }

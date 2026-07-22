@@ -30,7 +30,7 @@ class LifeCycleController {
         let assetName = "butterfly.usdz"
         
         if manager.currentAnimalName != assetName {
-            if let spot = manager.spots.first(where: { $0.animalModel != nil }) {
+            if let spot = manager.spots.first(where: { $0.isNear }) ?? manager.spots.first(where: { $0.animalModel != nil }) {
                 if let existing = spot.animalModel {
                     existing.removeFromParent()
                 }
@@ -83,7 +83,7 @@ class LifeCycleController {
             eyeLevelY = 0.5
         }
         
-        if let spot = manager.spots.first(where: { $0.animalModel != nil }) ?? manager.spots.first(where: { $0.isNear }) {
+        if let spot = manager.spots.first(where: { $0.isNear }) ?? manager.spots.first(where: { $0.animalModel != nil }) {
             manager.wanderController.stopWandering(at: spot, yHeight: manager.heightOffset(for: spot))
             
             if let existing = spot.animalModel {
@@ -133,7 +133,7 @@ class LifeCycleController {
                 timer.invalidate()
                 loadedAnimal.scale = SIMD3<Float>(repeating: targetScale)
                 
-                if forceWander, let spot = manager.spots.first(where: { $0.animalModel != nil }) {
+                if forceWander, let spot = manager.spots.first(where: { $0.isNear }) ?? manager.spots.first(where: { $0.animalModel != nil }) {
                     manager.wanderController.startWandering(loadedAnimal, at: spot, anchor: pAnchor, yHeight: manager.heightOffset(for: spot))
                 }
             } else {
