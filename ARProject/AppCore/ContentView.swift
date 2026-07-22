@@ -245,6 +245,15 @@ struct ContentView : View {
                 .zIndex(6)
                 .transition(.opacity)
             }
+            
+            if manager.showFeedingGuide {
+                FeedingGuideModalView(
+                    isPresented: $manager.showFeedingGuide,
+                    animalName: manager.spots.first(where: { $0.isNear })?.animalTypeName ?? "animal"
+                )
+                .zIndex(8)
+                .transition(.opacity)
+            }
 
             if let event = manager.feedbackEvent, event.message != nil {
                 VStack {
