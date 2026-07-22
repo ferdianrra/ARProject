@@ -81,7 +81,8 @@ class ARManager: NSObject, ObservableObject {
     var parentContainer = Entity()
     
     func toggleFacts(show: Bool) {
-        factController.toggleFacts(show: show, animal: animalEntity)
+        let typeName = spots.first(where: { $0.isNear })?.animalTypeName ?? "butterfly"
+        factController.toggleFacts(show: show, animal: animalEntity, animalTypeName: typeName) 
     }
 
     /// Single shared entry point for banner + haptic + sound feedback, so
