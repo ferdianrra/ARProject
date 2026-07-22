@@ -35,6 +35,10 @@ struct MainButtonsView: View {
                         }
                         manager.isFirstDiscoveryFact = false
                         manager.showFactSheet = true
+                        // manager.showFacts = true
+                        // COMMENTED OUT: The app uses the 2D ButterflyFactSheetView as the active
+                        // FunFact UI, not the 3D RealityKit fact cards. showFacts would spawn
+                        // 3D billboards via FactController which is currently unused.
                     }
                 }
             )
