@@ -64,7 +64,7 @@ struct ContentView : View {
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
                     .onEnded { value in
-                        if !manager.isPlaced && !manager.isCoaching {
+                        if !manager.isPlaced && !manager.isCoaching && manager.isFloorTargeted {
                             manager.handleTap(at: value.startLocation)
                         }
                     }
