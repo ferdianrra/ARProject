@@ -9,6 +9,7 @@ import SwiftUI
 import RealityKit
 import ARKit
 import Combine
+import Vision
 
 struct ARViewContainer: UIViewRepresentable {
     @ObservedObject var manager: ARManager
@@ -81,6 +82,19 @@ struct ARViewContainer: UIViewRepresentable {
         weak var arView: ARView?
         weak var camAnchor: AnchorEntity?
 
+        // MARK: - Call-the-animal via hand gesture
+        private var currentHandBuffer: CVPixelBuffer?
+        private let handVisionQueue = DispatchQueue(label: "com.arproject.animalCallVisionQueue")
+        private lazy var handPoseRequest: VNDetectHumanHandPoseRequest = {
+            let request = VNDetectHumanHandPoseRequest(completionHandler: { [weak self] request, error in
+                self?.processHandPose(for: request, error: error)
+            })
+            request.maximumHandCount = 1
+            return request
+        }()
+        private let handCurlCallController = HandCurlCallController()
+        private let callAnimalController = CallAnimalController()
+
         init(manager: ARManager) {
             self.manager = manager
         }
@@ -90,6 +104,41 @@ struct ARViewContainer: UIViewRepresentable {
             let now = CACurrentMediaTime()
             for faceAnchor in anchors.compactMap({ $0 as? ARFaceAnchor }) {
                 manager.headGestureController.update(faceAnchor: faceAnchor, timestamp: now)
+            }
+        }
+
+        // MARK: - Per-frame hand-pose check (call-the-animal gesture)
+        func session(_ session: ARSession, didUpdate frame: ARFrame) {
+            // Only worth running at all once placed and inside a portal —
+            // this app already does scene reconstruction + person
+            // segmentation + occlusion/physics every frame, so running Vision
+            // hand-pose continuously on top of that (even during placement,
+            // when it can never fire anyway) adds real, avoidable CPU load.
+            guard manager.isPlaced, manager.spots.contains(where: { $0.isNear }) else { return }
+            guard currentHandBuffer == nil, case .normal = frame.camera.trackingState else { return }
+            currentHandBuffer = frame.capturedImage
+
+            let requestHandler = VNImageRequestHandler(cvPixelBuffer: currentHandBuffer!, options: [:])
+            handVisionQueue.async { [weak self] in
+                guard let self else { return }
+                defer { self.currentHandBuffer = nil }
+                do {
+                    try requestHandler.perform([self.handPoseRequest])
+                } catch {
+                    print("Hand-pose Vision error: \(error)")
+                }
+            }
+        }
+
+        private func processHandPose(for request: VNRequest, error: Error?) {
+            guard let results = request.results as? [VNHumanHandPoseObservation], let hand = results.first else { return }
+
+            let shouldCallAnimal = handCurlCallController.update(hand: hand)
+            guard shouldCallAnimal else { return }
+
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.manager.spots.contains(where: { $0.isNear }) else { return }
+                self.callAnimalController.callAnimal(manager: self.manager)
             }
         }
 

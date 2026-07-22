@@ -5,7 +5,7 @@ import Combine
 
 
 class ARManager: NSObject, ObservableObject {
-    @Published var distanceText: String = "Find me!stop"
+    @Published var distanceText: String = "Find me!stop "
     @Published var currentAnimalName: String = ""
     @Published var isCoaching: Bool = true
     @Published var isTooFar: Bool = true
