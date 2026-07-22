@@ -136,11 +136,11 @@ struct ContentView : View {
                     .transition(.opacity)
                     .zIndex(1)
             } else if manager.isPlaced && !manager.isFeedingActive {
-                if manager.isLockedNearActive {
+                if manager.isLockedNearActive && !manager.spots.contains(where: { $0.isNear }) {
                     VStack(spacing: 12) {
                         InformationContainer(
                             message: "Coming soon! New habitat unlocking in future updates.",
-                            isWarning: false,
+                            isWarning: true,
                             showButton: false,
                             alignment: .top
                         )
@@ -148,7 +148,7 @@ struct ContentView : View {
                     .padding(.top, 48)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .transition(.opacity)
-                    .animation(.easeInOut, value: manager.isLockedNearActive)
+                    .animation(.easeInOut, value: manager.isLockedNearActive && !manager.spots.contains(where: { $0.isNear }))
                     .zIndex(2)
                 } else if manager.isTooFar {
                     VStack(spacing: 12) {

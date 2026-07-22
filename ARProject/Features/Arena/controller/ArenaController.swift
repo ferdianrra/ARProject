@@ -43,7 +43,8 @@ class ArenaController {
             }
 
             if spot.animalTypeName != "butterfly" {
-                if distance < 0.6 {
+                let isButterflyActive = manager.spots.first(where: { $0.animalTypeName == "butterfly" })?.isNear ?? false
+                if distance < 0.6 && !isButterflyActive {
                     if !spot.isLockedNear {
                         spot.isLockedNear = true
                         manager.triggerFeedback(message: nil, tone: .negative, haptic: .warning, sound: .negativeBuzz)
