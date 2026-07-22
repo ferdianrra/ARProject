@@ -3,6 +3,7 @@ import SwiftUI
 struct MainButtonsView: View {
     @Binding var currentState: PanelState
     @ObservedObject var manager: ARManager
+    @State private var showFeedingComingSoon: Bool = false
     
     var body: some View {
         HStack(spacing: 15) {
@@ -16,7 +17,19 @@ struct MainButtonsView: View {
                 title: "Feeding",
                 imageName: "Feeding",
                 buttonColor: Color(red: 0.98, green: 0.92, blue: 0.88),
-                action: { currentState = .feedingMode }
+                action: {
+                    let activeAnimalType = manager.spots.first(where: { $0.isNear })?.animalTypeName ?? ""
+                    if activeAnimalType == "butterfly" {
+                        // Butterfly: use the existing feeding flow
+                        currentState = .feedingMode
+                    } else {
+                        // Other animals: show Coming Soon warning
+                        withAnimation(.easeInOut) { showFeedingComingSoon = true }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                            withAnimation(.easeInOut) { showFeedingComingSoon = false }
+                        }
+                    }
+                }
             )
             MainButton(
                 title: "Resize",
@@ -35,11 +48,29 @@ struct MainButtonsView: View {
                         }
                         manager.isFirstDiscoveryFact = false
                         manager.showFactSheet = true
+                        // manager.showFacts = true
+                        // COMMENTED OUT: The app uses the 2D ButterflyFactSheetView as the active
+                        // FunFact UI, not the 3D RealityKit fact cards. showFacts would spawn
+                        // 3D billboards via FactController which is currently unused.
                     }
                 }
             )
         }
         .padding(.vertical, 15)
+        .overlay(alignment: .top) {
+            // Coming Soon banner for non-butterfly animals.
+            // Reuses InformationContainer — same component used for the habitat Coming Soon in ContentView.
+            if showFeedingComingSoon {
+                InformationContainer(
+                    message: "Coming soon! Feeding is currently only available for the Butterfly.",
+                    isWarning: true,
+                    showButton: false,
+                    alignment: .top
+                )
+                .offset(y: -130)
+                .transition(.opacity)
+            }
+        }
     }
 }
 

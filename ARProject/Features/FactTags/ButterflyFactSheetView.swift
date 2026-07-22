@@ -52,6 +52,16 @@ struct ButterflyFactSheetView: View {
                     
                     // Simple Fact Content
                     VStack(alignment: .leading, spacing: 12) {
+                        // SF Symbol icon + fact title
+                        HStack(spacing: 10) {
+                            Image(systemName: fact.emoji)
+                                .font(.system(size: 26, weight: .semibold))
+                                .foregroundColor(.orange)
+                            Text(fact.title)
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(.primary)
+                        }
+                        
                         Text(fact.text)
                             .font(.system(size: 15, weight: .regular, design: .rounded))
                             .foregroundColor(.primary)

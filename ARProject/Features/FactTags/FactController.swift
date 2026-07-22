@@ -50,11 +50,14 @@ class FactController {
         let wrapper = Entity()
         wrapper.addChild(paperEntity)
         
+        // COMMENTED OUT: SF Symbol icon on 3D AR card.
+        // The active FunFact UI is the 2D ButterflyFactSheetView, not these 3D cards.
+        // The emoji/SF Symbol is now displayed inside ButterflyFactSheetView using Image(systemName:).
         // 🔧 1. SF Symbol icon di bagian atas kartu
-        let iconSize: Float = 0.06
-        let symbolIcon = createSymbolBillboard(systemName: fact.emoji, size: iconSize, tint: .white)
-        symbolIcon.position = [0, noteSize * 0.28, 0.003]
-        wrapper.addChild(symbolIcon)
+        // let iconSize: Float = 0.06
+        // let symbolIcon = createSymbolBillboard(systemName: fact.emoji, size: iconSize, tint: .white)
+        // symbolIcon.position = [0, noteSize * 0.28, 0.003]
+        // wrapper.addChild(symbolIcon)
         
         // 🔧 2. Title text, di bawah icon
         let titleMargin: Float = 0.02
@@ -92,16 +95,40 @@ class FactController {
     private func createSymbolBillboard(systemName: String, size: Float = 0.25, tint: UIColor = .white) -> Entity {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 256, height: 256))
         let img = renderer.image { context in
-            let config = UIImage.SymbolConfiguration(pointSize: 180, weight: .bold)
-            guard let symbolImage = UIImage(systemName: systemName, withConfiguration: config)?
-                .withTintColor(tint, renderingMode: .alwaysOriginal) else { return }
+            // SF Symbol Drawing
+            let config = UIImage.SymbolConfiguration(weight: .bold)
+            if let symbolImage = UIImage(systemName: systemName, withConfiguration: config)?
+                .withTintColor(tint, renderingMode: .alwaysOriginal) {
+                
+                let imageSize = symbolImage.size
+                let targetSize: CGFloat = 210
+                let scale = min(targetSize / imageSize.width, targetSize / imageSize.height)
+                let newWidth = imageSize.width * scale
+                let newHeight = imageSize.height * scale
+                
+                let rect = CGRect(
+                    x: (256 - newWidth) / 2,
+                    y: (256 - newHeight) / 2,
+                    width: newWidth,
+                    height: newHeight
+                )
+                tint.set()
+                symbolImage.draw(in: rect)
+            }
             
-            let imageSize = symbolImage.size
-            let origin = CGPoint(
-                x: (256 - imageSize.width) / 2,
-                y: (256 - imageSize.height) / 2
+            /* COMMENTED OUT: Emoji Drawing
+            let font = UIFont.systemFont(ofSize: 140)
+            let attrs: [NSAttributedString.Key: Any] = [.font: font]
+            let string = systemName as NSString
+            let stringSize = string.size(withAttributes: attrs)
+            let rect = CGRect(
+                x: (256 - stringSize.width) / 2,
+                y: (256 - stringSize.height) / 2,
+                width: stringSize.width,
+                height: stringSize.height
             )
-            symbolImage.draw(at: origin)
+            string.draw(in: rect, withAttributes: attrs)
+            */
         }
         
         guard let cgImage = img.cgImage,
