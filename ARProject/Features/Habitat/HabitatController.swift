@@ -27,8 +27,8 @@ class HabitatController {
             self.circleEntities.append(circle)
         }
         
-        let xLineMesh = MeshResource.generateBox(width: 1.2, height: 0.002, depth: 0.005)
-        let zLineMesh = MeshResource.generateBox(width: 0.005, height: 0.002, depth: 1.2)
+        let xLineMesh = MeshResource.generateBox(width: 2.2, height: 0.002, depth: 0.005)
+        let zLineMesh = MeshResource.generateBox(width: 0.005, height: 0.002, depth: 2.2)
         
         let lines = [
             ModelEntity(mesh: xLineMesh, materials: [brownMaterial]),
@@ -37,10 +37,10 @@ class HabitatController {
             ModelEntity(mesh: zLineMesh, materials: [brownMaterial])
         ]
         
-        lines[0].position = [0, 0.02, -0.6]
-        lines[1].position = [0.6, 0.02, 0]
-        lines[2].position = [0, 0.02, 0.6]
-        lines[3].position = [-0.6, 0.02, 0]
+        lines[0].position = [0, 0.02, -1.1]
+        lines[1].position = [1.1, 0.02, 0]
+        lines[2].position = [0, 0.02, 1.1]
+        lines[3].position = [-1.1, 0.02, 0]
         
         for line in lines {
             planeAnchor.addChild(line)
