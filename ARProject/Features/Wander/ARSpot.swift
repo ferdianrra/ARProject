@@ -6,11 +6,11 @@ class ARSpot {
     let center: SIMD3<Float>
     var hasVisited: Bool = false
     var isNear: Bool = false
+    var isLockedNear: Bool = false
     
     var animalTypeName: String = ""       
     var animalTemplate: ModelEntity?
     var spatialAudioEntity: Entity?
-    
     var wanderTimer: Timer?
     var scatteredFlowers: [Entity] = []
     

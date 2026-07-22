@@ -21,8 +21,10 @@ class ARManager: NSObject, ObservableObject {
 
     @Published var showFactSheet: Bool = false
     @Published var isFactQuestionActive: Bool = false
+    @Published var isLockedNearActive: Bool = false
     @Published var isFirstDiscoveryFact: Bool = false
     @Published var currentFactSpot: ARSpot? = nil
+    @Published var currentLifeCyclePhase: Int = 1
 
     
     var subscriptions: [AnyCancellable] = [] 
@@ -230,7 +232,7 @@ class ARManager: NSObject, ObservableObject {
     
     func heightOffset(for spot: ARSpot) -> Float {
         if spot.animalTypeName == "butterfly" {
-            return 2.5 // Ketinggian terbang kupu-kupu dari ground
+            return 0.95 // Ketinggian terbang kupu-kupu dari ground
         } else {
             return spot.groundOffset 
         }

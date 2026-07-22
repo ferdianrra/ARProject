@@ -8,47 +8,42 @@ struct InformationContainer: View {
     var alignment: Alignment = .top
     
     var body: some View {
-        GeometryReader { geometry in
-            VStack(alignment: .leading, spacing: 16) {
-                // Main Content Text
-                Text(message)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                
-                // Bottom-right aligned small action button (optional)
-                if showButton, let action = onDismiss {
-                    HStack {
-                        Spacer()
-                        Button(action: action) {
-                            Text(isWarning ? "Try Again" : "Got it")
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundColor(isWarning ? Color(red: 0.65, green: 0.45, blue: 0.05) : Color(red: 0.1, green: 0.45, blue: 0.2))
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .fill(Color.white.opacity(0.6))
-                                )
-                        }
+        VStack(alignment: .leading, spacing: 16) {
+            // Main Content Text
+            Text(message)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+            
+            // Bottom-right aligned small action button (optional)
+            if showButton, let action = onDismiss {
+                HStack {
+                    Spacer()
+                    Button(action: action) {
+                        Text(isWarning ? "Try Again" : "Got it")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundColor(isWarning ? Color(red: 0.65, green: 0.45, blue: 0.05) : Color(red: 0.1, green: 0.45, blue: 0.2))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color.white.opacity(0.6))
+                            )
                     }
                 }
             }
-            .padding(20)
-            // Background is a clean, solid pastel panel
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(isWarning ? Color(red: 0.99, green: 0.96, blue: 0.82) : Color(red: 0.88, green: 0.96, blue: 0.91))
-            )
-            .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 6)
-            // Constraints container width to exactly 1/3 of the current screen width
-            .frame(width: geometry.size.width / 3)
-            // Centers or aligns the container layout inside the geometry frame
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
-            .padding(.top, alignment == .top ? 40 : 0)
         }
+        .padding(20)
+        // Background is a clean, solid pastel panel
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(isWarning ? Color(red: 0.99, green: 0.96, blue: 0.82) : Color(red: 0.88, green: 0.96, blue: 0.91))
+        )
+        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 6)
+        .frame(maxWidth: 380)
+        .padding(.horizontal, 20)
     }
 }
 

@@ -112,10 +112,30 @@ final class PlacementController {
         Task { [weak manager] in
             guard let manager = manager else { return }
             do {
-                let animals = ["butterfly", "Lioness", "MountainGoat", "Wolf"]
+                guard let camAnchor = manager.cameraAnchor else { return }
+                let cameraPos = camAnchor.position(relativeTo: nil)
                 
-                for (index, spot) in manager.spots.enumerated() {
-                    let animalName = animals[index % animals.count]
+                let sortedSpots = manager.spots.sorted { spot1, spot2 in
+                    let pos1 = manager.parentContainer.convert(position: spot1.center, to: nil)
+                    let pos2 = manager.parentContainer.convert(position: spot2.center, to: nil)
+                    let dist1 = simd_distance(SIMD2<Float>(cameraPos.x, cameraPos.z), SIMD2<Float>(pos1.x, pos1.z))
+                    let dist2 = simd_distance(SIMD2<Float>(cameraPos.x, cameraPos.z), SIMD2<Float>(pos2.x, pos2.z))
+                    return dist1 < dist2
+                }
+                
+                var assignments: [Int: String] = [:]
+                if let closest = sortedSpots.first {
+                    assignments[closest.id] = "butterfly"
+                }
+                let remainingAnimals = ["Wolf", "MountainGoat", "Lioness"]
+                var remIdx = 0
+                for spot in sortedSpots.dropFirst() {
+                    assignments[spot.id] = remainingAnimals[remIdx % remainingAnimals.count]
+                    remIdx += 1
+                }
+                
+                for spot in manager.spots {
+                    let animalName = assignments[spot.id] ?? "butterfly"
                     
                     do {
                         let template = try await ModelEntity(named: animalName, in: nil)
@@ -206,7 +226,9 @@ final class PlacementController {
                 manager.flowerHabitatTemplate = flowerTemplate
                 
                 for spot in manager.spots {
-                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0012, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    if spot.animalTypeName == "butterfly" {
+                        manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    }
                 }
             } catch {
                 print("error load flower_habitat.usdz: \(error)")

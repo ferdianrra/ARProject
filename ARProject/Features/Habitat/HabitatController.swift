@@ -10,8 +10,8 @@ class HabitatController {
     func setupHabitats(spots: [ARSpot], planeAnchor: Entity) {
         let circleMesh = MeshResource.generateCircle(radius: 1.5)
         var brownMaterial = PhysicallyBasedMaterial()
-        brownMaterial.baseColor = .init(tint: .init(red: 0.5, green: 0.28, blue: 0.12, alpha: 1.0))
-        brownMaterial.emissiveColor = .init(color: .init(red: 0.5, green: 0.28, blue: 0.12, alpha: 1.0))
+        brownMaterial.baseColor = .init(tint: .init(red: 0.42, green: 0.26, blue: 0.14, alpha: 1.0))
+        brownMaterial.emissiveColor = .init(color: .init(red: 0.42, green: 0.26, blue: 0.14, alpha: 1.0))
         brownMaterial.emissiveIntensity = 2.0
         brownMaterial.roughness = .init(floatLiteral: 0.1)
         brownMaterial.metallic = .init(floatLiteral: 0.0)
@@ -53,8 +53,8 @@ class HabitatController {
         let pulse = (sin(self.auraPhase) + 1) / 2
         
         var mat = PhysicallyBasedMaterial()
-        mat.baseColor = .init(tint: .init(red: 0.5, green: 0.28, blue: 0.12, alpha: 1.0))
-        mat.emissiveColor = .init(color: .init(red: 0.5, green: 0.28, blue: 0.12, alpha: 1.0))
+        mat.baseColor = .init(tint: .init(red: 0.42, green: 0.26, blue: 0.14, alpha: 1.0))
+        mat.emissiveColor = .init(color: .init(red: 0.42, green: 0.26, blue: 0.14, alpha: 1.0))
         mat.emissiveIntensity = 1.0 + pulse * 2.0
         mat.roughness = .init(floatLiteral: 0.1)
         mat.metallic = .init(floatLiteral: 0.0)
