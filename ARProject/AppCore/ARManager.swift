@@ -18,6 +18,7 @@ class ARManager: NSObject, ObservableObject {
     
     @Published var isFeedingActive: Bool = false
     @Published var feedingOverlayState: FeedingOverlayState = .reaching
+    @Published var feedingSuccessMessage: String?
 
     @Published var showFactSheet: Bool = false
     @Published var isFactQuestionActive: Bool = false
@@ -64,7 +65,7 @@ class ARManager: NSObject, ObservableObject {
     let resizeController = ResizeController()
     let lifeCycleController = LifeCycleController()
     // Feeding feature controller
-    lazy var feedingController: FeedingController = FeedingController(manager: self, spots: self.spots)
+    lazy var feedingController: FeedingController = FeedingController()
     
     // Core placement & exploration controllers
     lazy var placementController: PlacementController = PlacementController(manager: self)

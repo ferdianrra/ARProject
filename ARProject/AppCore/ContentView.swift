@@ -194,13 +194,13 @@ struct ContentView : View {
                 }
             }
             
-            if !manager.isCoaching && manager.isPlaced && !manager.isTooFar && !manager.isFeedingActive {
+            if !manager.isCoaching && manager.isPlaced && !manager.isTooFar {
                 DynamicPanelView(currentState: $panelState, manager: manager)
                     .zIndex(3)
                     .transition(.move(edge: .bottom))
             }
             
-            if manager.isPlaced && !manager.isCoaching && !manager.isFeedingActive {
+            if manager.isPlaced && !manager.isCoaching {
                 VStack {
                     HStack {
                         Spacer()
@@ -231,30 +231,7 @@ struct ContentView : View {
                 .transition(.opacity)
             }
             
-            if manager.isFeedingActive {
-                HandZoneOverlayRepresentable(state: manager.feedingOverlayState)
-                    .allowsHitTesting(false)
-                    .edgesIgnoringSafeArea(.all)
-                    .zIndex(4)
-                
-                VStack {
-                    HStack {
-                        Button(action: {
-                            manager.stopFeedingMode()
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 36))
-                                .foregroundColor(.white)
-                                .background(Circle().fill(Color.black.opacity(0.5)))
-                        }
-                        .padding(.leading, 20)
-                        .padding(.top, 24)
-                        
-                        Spacer()
-                    }
-                    Spacer()
-                }
-            }
+
             
             if manager.showFactSheet, let spot = manager.currentFactSpot {
                 ButterflyFactSheetView(
