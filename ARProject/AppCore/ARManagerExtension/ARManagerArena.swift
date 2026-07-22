@@ -13,6 +13,6 @@ extension ARManager {
             return
         }
         
-        arenaController.update(cameraAnchor: camAnchor, planeAnchor: anchor)
+        arenaController.checkProximity()
     }
 }

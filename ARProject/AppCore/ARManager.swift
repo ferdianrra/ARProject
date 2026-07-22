@@ -18,6 +18,7 @@ class ARManager: NSObject, ObservableObject {
 
     @Published var showFactSheet: Bool = false
     @Published var isFactQuestionActive: Bool = false
+    @Published var isLockedNearActive: Bool = false
     @Published var isFirstDiscoveryFact: Bool = false
     @Published var currentFactSpot: ARSpot? = nil
     @Published var currentLifeCyclePhase: Int = 1
@@ -65,10 +66,10 @@ class ARManager: NSObject, ObservableObject {
     let headGestureController = HeadGestureController()
     
     var spots: [ARSpot] = [
-        ARSpot(id: 0, center: [-0.6, 0.05, -0.6], isLocked: true),
-        ARSpot(id: 1, center: [ 0.6, 0.05, -0.6], isLocked: true),
-        ARSpot(id: 2, center: [-0.6, 0.05,  0.6], isLocked: false),
-        ARSpot(id: 3, center: [ 0.6, 0.05,  0.6], isLocked: true)
+        ARSpot(id: 0, center: [-0.6, 0.05, -0.6]),
+        ARSpot(id: 1, center: [ 0.6, 0.05, -0.6]),
+        ARSpot(id: 2, center: [-0.6, 0.05,  0.6]),
+        ARSpot(id: 3, center: [ 0.6, 0.05,  0.6])
     ]
     
     var parentContainer = Entity()
@@ -226,7 +227,7 @@ class ARManager: NSObject, ObservableObject {
     
     func heightOffset(for spot: ARSpot) -> Float {
         if spot.animalTypeName == "butterfly" {
-            return 2.5 // Ketinggian terbang kupu-kupu dari ground
+            return 0.95 // Ketinggian terbang kupu-kupu dari ground
         } else {
             return spot.groundOffset 
         }

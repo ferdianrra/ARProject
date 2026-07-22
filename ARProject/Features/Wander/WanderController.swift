@@ -88,9 +88,10 @@ class WanderController {
         if let active = spot.animalModel {
             stopAllAnimationsRecursive(active)
             
+            // Reset posisi tepat ke tengah titik spot.center
             var targetTransform = active.transform
-            // Reset posisi tepat ke tengah titik spot.center di Y yang nempel tanah
-            targetTransform.translation = SIMD3<Float>(spot.center.x, spot.groundOffset, spot.center.z)
+            let targetY = spot.animalTypeName == "butterfly" ? 0.5 : spot.groundOffset
+            targetTransform.translation = SIMD3<Float>(spot.center.x, targetY, spot.center.z)
             targetTransform.rotation = simd_quatf(angle: 0, axis: [0, 1, 0]) // Reset rotasi menghadap depan
             
             active.move(to: targetTransform, relativeTo: active.parent, duration: 0.5, timingFunction: .easeInOut)

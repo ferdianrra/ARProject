@@ -46,10 +46,9 @@ final class PlacementController {
         Task { [weak manager] in
             guard let manager = manager else { return }
             do {
-                let animals = ["butterfly", "Lioness", "MountainGoat", "Wolf"]
+                let animals = ["MountainGoat", "Wolf", "butterfly", "Lioness"]
                 
                 for (index, spot) in manager.spots.enumerated() {
-                    guard !spot.isLocked else { continue }
                     let animalName = animals[index % animals.count]
                     
                     do {
@@ -141,8 +140,9 @@ final class PlacementController {
                 manager.flowerHabitatTemplate = flowerTemplate
                 
                 for spot in manager.spots {
-                    guard !spot.isLocked else { continue }
-                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    if spot.animalTypeName == "butterfly" {
+                        manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    }
                 }
             } catch {
                 print("error load flower_habitat.usdz: \(error)")

@@ -1,29 +1,17 @@
 import RealityKit
 import Foundation
-import SwiftUI
 
-final class ArenaController {
-    // MARK: - Private storage
+class ArenaController {
     private weak var manager: ARManager?
     
-    // MARK: - Init
     init(manager: ARManager) {
         self.manager = manager
     }
     
-    // MARK: - Public API
-    func update(cameraAnchor camAnchor: AnchorEntity, planeAnchor anchor: AnchorEntity) {
-        guard let manager = manager else { return }
-        
-        if !manager.isPlaced {
-            manager.distanceText = "Tap screen to place the area"
-            DispatchQueue.main.async {
-                if manager.isTooFar {
-                    manager.isTooFar = false
-                }
-            }
-            return
-        }
+    func checkProximity() {
+        guard let manager = manager,
+              let camAnchor = manager.cameraAnchor,
+              manager.isPlaced else { return }
         
         if manager.isFeedingActive {
             if manager.spots.first(where: { $0.isNear }) == nil {
@@ -32,7 +20,7 @@ final class ArenaController {
             }
             manager.updateFeedingIfNeeded()
         }
-        
+
         let cameraPosition = camAnchor.position(relativeTo: nil)
         let cameraFlat = SIMD2<Float>(cameraPosition.x, cameraPosition.z)
         
@@ -44,7 +32,7 @@ final class ArenaController {
         
         var closestDistance = Float.infinity
         let activeSpot = manager.spots.first(where: { $0.isNear })
-        
+
         for spot in manager.spots {
             let spotWorldPos = manager.parentContainer.convert(position: spot.center, to: nil)
             let spotFlat = SIMD2<Float>(spotWorldPos.x, spotWorldPos.z)
@@ -53,8 +41,8 @@ final class ArenaController {
             if distance < closestDistance {
                 closestDistance = distance
             }
-            
-            if spot.isLocked {
+
+            if spot.animalTypeName != "butterfly" {
                 if distance < 0.6 {
                     if !spot.isLockedNear {
                         spot.isLockedNear = true
@@ -65,9 +53,9 @@ final class ArenaController {
                 }
                 continue
             }
-            
-            let radiusThreshold: Float = spot.isNear ? 1.5 : 0.25
-            
+
+            let radiusThreshold: Float = spot.isNear ? 1.5 : 0.6
+
             if distance < radiusThreshold {
                 if activeSpot == nil || activeSpot?.id == spot.id {
                     if !spot.isNear {
@@ -80,7 +68,6 @@ final class ArenaController {
                         manager.habitatController.animateCircleScale(for: spot, to: 1.0)
                         
                         if spot.animalTypeName == "butterfly" {
-                            // --- KHUSUS BUTTERFLY: Boleh terbang & muter ---
                             if let existing = spot.animalModel {
                                 existing.isEnabled = true
                                 manager.wanderController.startWandering(existing, at: spot, anchor: manager.parentContainer, yHeight: manager.heightOffset(for: spot))
@@ -88,7 +75,6 @@ final class ArenaController {
                                 manager.wanderController.spawnButterfly(at: spot, template: template, anchor: manager.parentContainer, yHeight: manager.heightOffset(for: spot))
                             }
                         } else {
-                            // --- KHUSUS HEWAN DARAT (Lioness, Wolf, Goat): Cuma di-enable & diam di tempat ---
                             if let existing = spot.animalModel {
                                 existing.isEnabled = true
                                 existing.position = SIMD3<Float>(spot.center.x, spot.groundOffset, spot.center.z)
@@ -100,14 +86,15 @@ final class ArenaController {
                             }
                         }
                         
-                        // Audio untuk semua hewan
                         if !spot.audioName.isEmpty, let animalModel = spot.animalModel {
                             let audioEntity = manager.createSpatialAudio(audioName: spot.audioName)
                             animalModel.addChild(audioEntity)
                             spot.spatialAudioEntity = audioEntity
                         }
                         
-                        manager.habitatController.setFlowerHabitat(at: spot, count: 24, scale: 0.0028, scatteringRadius: 1.3, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                        if spot.animalTypeName == "butterfly" {
+                            manager.habitatController.setFlowerHabitat(at: spot, count: 24, scale: 0.0028, scatteringRadius: 1.3, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                        }
                         
                         if isFirstDiscovery {
                             manager.triggerFeedback(tone: .positive, haptic: .success, sound: .positiveChime)
@@ -124,16 +111,9 @@ final class ArenaController {
                     spot.isNear = false
                     manager.wanderController.stopWandering(at: spot, yHeight: manager.heightOffset(for: spot))
                     manager.habitatController.animateCircleScale(for: spot, to: 0.25)
-                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
-                    
-                    // Re-enable black butterfly silhouette when out of arena
-                    manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0012, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
-                    
-                    //                    spot.wingAudioController?.stop()
-                    //                    spot.wingAudioController = nil
-                    
-                    //                    spot.spatialAudioEntity?.removeFromParent()
-                    //                    spot.spatialAudioEntity = nil
+                    if spot.animalTypeName == "butterfly" {
+                        manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    }
                 }
             }
         }
@@ -150,46 +130,52 @@ final class ArenaController {
             for spot in manager.spots {
                 if spot.id != currentActive.id {
                     spot.circleEntity?.isEnabled = false
-                    spot.blackButterfly?.isEnabled = false
-                    spot.activeButterfly?.isEnabled = false
-                    spot.lockEntity?.isEnabled = false
                     spot.reflectiveAnimal?.isEnabled = false
                     spot.animalModel?.isEnabled = false
+                    for flower in spot.scatteredFlowers {
+                        flower.isEnabled = false
+                    }
                 } else {
                     spot.circleEntity?.isEnabled = true
-                    spot.activeButterfly?.isEnabled = true
-                    spot.lockEntity?.isEnabled = spot.isLocked
                     spot.animalModel?.isEnabled = true
                     for flower in spot.scatteredFlowers {
                         flower.isEnabled = true
                     }
-                }  
-                if !manager.isFeedingActive {
-                    DispatchQueue.main.async {
-                        manager.isTooFar = true
-                    }
-                }
-                for line in manager.habitatController.lineEntities {
-                    line.isEnabled = true
-                }
-                for spot in manager.spots {
-                    spot.circleEntity?.isEnabled = true
-                    spot.lockEntity?.isEnabled = spot.isLocked
-                    for flower in spot.scatteredFlowers {
-                        flower.isEnabled = true
-                    }
-                    if spot.hasVisited {
-                        spot.reflectiveAnimal?.isEnabled = false
-                        spot.animalModel?.isEnabled = true
-                    } else {
-                        spot.reflectiveAnimal?.isEnabled = true
-                        spot.animalModel?.isEnabled = false
-                    }
                 }
             }
-            
+        } else {
             if !manager.isFeedingActive {
-                manager.distanceText = String(format: "Jarak ke titik terdekat: %.2f meter", closestDistance)
+                DispatchQueue.main.async {
+                    manager.isTooFar = true
+                }
+            }
+            for line in manager.habitatController.lineEntities {
+                line.isEnabled = true
+            }
+            for spot in manager.spots {
+                spot.circleEntity?.isEnabled = true
+                for flower in spot.scatteredFlowers {
+                    flower.isEnabled = true
+                }
+                if spot.hasVisited {
+                    spot.reflectiveAnimal?.isEnabled = false
+                    spot.animalModel?.isEnabled = true
+                } else {
+                    spot.reflectiveAnimal?.isEnabled = true
+                    spot.animalModel?.isEnabled = false
+                }
+            }
+        }
+        
+        if !manager.isFeedingActive {
+            manager.distanceText = String(format: "Jarak ke titik terdekat: %.2f meter", closestDistance)
+        }
+        
+        let anyLockedNear = manager.spots.contains(where: { $0.isLockedNear })
+        if manager.isLockedNearActive != anyLockedNear {
+            DispatchQueue.main.async {
+                manager.isLockedNearActive = anyLockedNear
             }
         }
     }
+}

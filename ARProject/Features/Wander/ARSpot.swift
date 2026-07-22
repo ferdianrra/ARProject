@@ -4,7 +4,6 @@ import Foundation
 class ARSpot {
     let id: Int
     let center: SIMD3<Float>
-    let isLocked: Bool
     var hasVisited: Bool = false
     var isNear: Bool = false
     var isLockedNear: Bool = false
@@ -12,7 +11,6 @@ class ARSpot {
     var animalTypeName: String = ""       
     var animalTemplate: ModelEntity?
     var spatialAudioEntity: Entity?
-    var lockEntity: Entity?
     var wanderTimer: Timer?
     var scatteredFlowers: [Entity] = []
     
@@ -25,12 +23,11 @@ class ARSpot {
     
     var groundOffset: Float = 0
     
-    init(id: Int, center: SIMD3<Float>, animalModel: ModelEntity? = nil, audioName: String = "", isLocked: Bool = false) {
+    init(id: Int, center: SIMD3<Float>, animalModel: ModelEntity? = nil, audioName: String = "") {
         self.id = id
         self.center = center
         self.hasVisited = false
         self.animalModel = animalModel
         self.audioName = audioName
-        self.isLocked = isLocked
     }
 }
