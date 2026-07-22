@@ -20,6 +20,7 @@ struct ARViewContainer: UIViewRepresentable {
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = [.horizontal]
         config.environmentTexturing = .automatic
+        config.frameSemantics.insert(.personSegmentationWithDepth)
         
         if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
             config.sceneReconstruction = .mesh
@@ -38,7 +39,10 @@ struct ARViewContainer: UIViewRepresentable {
         arView.session.delegate = context.coordinator
         arView.session.run(config)
         
-        arView.environment.sceneUnderstanding.options.insert([.occlusion, .receivesLighting])
+//        arView.environment.sceneUnderstanding.options.insert([.occlusion, .receivesLighting])
+        arView.environment.sceneUnderstanding.options.insert([.receivesLighting])
+        
+
         
         manager.arView = arView
 
