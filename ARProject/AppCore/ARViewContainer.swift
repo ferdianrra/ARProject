@@ -20,13 +20,26 @@ struct ARViewContainer: UIViewRepresentable {
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = [.horizontal]
         config.environmentTexturing = .automatic
+        
+        if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
+            config.sceneReconstruction = .mesh
+        }
+        
+        if ARWorldTrackingConfiguration.supportsFrameSemantics(.personSegmentationWithDepth) {
+            config.frameSemantics.insert(.personSegmentationWithDepth)
+        } else if ARWorldTrackingConfiguration.supportsFrameSemantics(.personSegmentation) {
+            config.frameSemantics.insert(.personSegmentation)
+        }
+        
         if ARWorldTrackingConfiguration.supportsUserFaceTracking {
             config.userFaceTrackingEnabled = true
         }
 
         arView.session.delegate = context.coordinator
         arView.session.run(config)
-        // Store reference so PlacementController can raycast from tap point
+        
+        arView.environment.sceneUnderstanding.options.insert([.occlusion, .receivesLighting])
+        
         manager.arView = arView
 
         let camAnchor = AnchorEntity(.camera)
