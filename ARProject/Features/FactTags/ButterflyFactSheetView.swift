@@ -13,7 +13,10 @@ struct ButterflyFactSheetView: View {
     
     @EnvironmentObject var manager: ARManager
     
-    private let facts = ButterflyFactData.facts
+    private var facts: [ButterflyFact] {
+        let typeName = manager.currentFactSpot?.animalTypeName ?? "butterfly"
+        return AnimalFactData.facts(for: typeName)
+    }
     
     var body: some View {
         ZStack {
@@ -121,8 +124,9 @@ struct ButterflyFactSheetView: View {
                                 onDecision(.accepted)
                             }) {
                                 HStack(spacing: 12) {
-                                    Text("😆")
+                                    Image(systemName: "face.smiling.fill")
                                         .font(.system(size: 24))
+                                        .foregroundColor(.yellow)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Smile")
                                             .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -143,8 +147,9 @@ struct ButterflyFactSheetView: View {
                                 onDecision(.rejected)
                             }) {
                                 HStack(spacing: 12) {
-                                    Text("☹️")
+                                    Image(systemName: "face.dashed")
                                         .font(.system(size: 24))
+                                        .foregroundColor(.red)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Frown / Scrunch Nose")
                                             .font(.system(size: 15, weight: .bold, design: .rounded))

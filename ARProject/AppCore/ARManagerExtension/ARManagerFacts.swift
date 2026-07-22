@@ -26,18 +26,18 @@ extension ARManager {
         guard decision != .none else { return }
         
         let emoji = (decision == .accepted) ? "😆" : "☹️"
-        factController.spawnEmoji(emoji: emoji, at: spot)
+        factController.spawnSymbol(systemName: "face.smiling.fill", at: spot)
         
         if decision == .accepted {
             triggerFeedback(
-                message: "Yay! You became friends with the butterfly! 😆",
+                message: "Yay! You became friends with the animal!",
                 tone: .positive,
                 haptic: .success,
                 sound: .positiveChime
             )
         } else {
             triggerFeedback(
-                message: "The butterfly is sad you declined... ☹️",
+                message: "The animal is sad you declined... ",
                 tone: .negative,
                 haptic: .warning,
                 sound: .negativeBuzz
