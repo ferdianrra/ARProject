@@ -228,9 +228,16 @@ final class PlacementController {
                 let flowerTemplate = try await Entity(named: "flower_habitat", in: nil)
                 manager.flowerHabitatTemplate = flowerTemplate
                 
+                let grassTemplate = try await Entity(named: "grass_dry_habitat", in: nil)
+                manager.grassHabitatTemplate = grassTemplate
+                
+
+                
                 for spot in manager.spots {
                     if spot.animalTypeName == "butterfly" {
                         manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    } else {
+                        manager.habitatController.setGrassHabitat(at: spot, count: 6, scale: 0.001, scatteringRadius: 0.2, template: manager.grassHabitatTemplate, anchor: manager.parentContainer)
                     }
                 }
             } catch {

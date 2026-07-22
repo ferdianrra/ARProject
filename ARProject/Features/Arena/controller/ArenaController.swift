@@ -42,18 +42,18 @@ class ArenaController {
                 closestDistance = distance
             }
 
-            if spot.animalTypeName != "butterfly" {
-                let isButterflyActive = manager.spots.first(where: { $0.animalTypeName == "butterfly" })?.isNear ?? false
-                if distance < 0.6 && !isButterflyActive {
-                    if !spot.isLockedNear {
-                        spot.isLockedNear = true
-                        manager.triggerFeedback(message: nil, tone: .negative, haptic: .warning, sound: .negativeBuzz)
-                    }
-                } else {
-                    spot.isLockedNear = false
-                }
-                continue
-            }
+//            if spot.animalTypeName != "butterfly" {
+//                let isButterflyActive = manager.spots.first(where: { $0.animalTypeName == "butterfly" })?.isNear ?? false
+//                if distance < 0.6 && !isButterflyActive {
+//                    if !spot.isLockedNear {
+//                        spot.isLockedNear = true
+//                        manager.triggerFeedback(message: nil, tone: .negative, haptic: .warning, sound: .negativeBuzz)
+//                    }
+//                } else {
+//                    spot.isLockedNear = false
+//                }
+//                continue
+//            }
 
             let radiusThreshold: Float = spot.isNear ? 1.5 : 0.6
             
@@ -110,8 +110,10 @@ class ArenaController {
                         
                         if spot.animalTypeName == "butterfly" {
                             manager.habitatController.setFlowerHabitat(at: spot, count: 24, scale: 0.0028, scatteringRadius: 1.3, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                        } else {
+                            manager.habitatController.setGrassHabitat(at: spot, count: 24, scale: 0.0028, scatteringRadius: 1.3, template: manager.grassHabitatTemplate, anchor: manager.parentContainer)
                         }
-                        
+                
                         if isFirstDiscovery {
                             manager.triggerFeedback(tone: .positive, haptic: .success, sound: .positiveChime)
                             DispatchQueue.main.async {
@@ -129,6 +131,8 @@ class ArenaController {
                     manager.habitatController.animateCircleScale(for: spot, to: 0.25)
                     if spot.animalTypeName == "butterfly" {
                         manager.habitatController.setFlowerHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.flowerHabitatTemplate, anchor: manager.parentContainer)
+                    } else {
+                        manager.habitatController.setGrassHabitat(at: spot, count: 6, scale: 0.0006, scatteringRadius: 0.2, template: manager.grassHabitatTemplate, anchor: manager.parentContainer)
                     }
                     
                     if spot.animalTypeName != "butterfly", let animalModel = spot.animalModel {
@@ -162,11 +166,17 @@ class ArenaController {
                     for flower in spot.scatteredFlowers {
                         flower.isEnabled = false
                     }
+                    for grass in spot.scatteredGrass {
+                        grass.isEnabled = false
+                    }
                 } else {
                     spot.circleEntity?.isEnabled = true
                     spot.animalModel?.isEnabled = true
                     for flower in spot.scatteredFlowers {
                         flower.isEnabled = true
+                    }
+                    for grass in spot.scatteredGrass {
+                        grass.isEnabled = true
                     }
                 }
             }
@@ -183,6 +193,9 @@ class ArenaController {
                 spot.circleEntity?.isEnabled = true
                 for flower in spot.scatteredFlowers {
                     flower.isEnabled = true
+                }
+                for grass in spot.scatteredGrass {
+                    grass.isEnabled = true
                 }
                 if spot.hasVisited {
                     spot.reflectiveAnimal?.isEnabled = false
