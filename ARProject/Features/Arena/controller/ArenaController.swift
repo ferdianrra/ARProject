@@ -41,19 +41,20 @@ class ArenaController {
             if distance < closestDistance {
                 closestDistance = distance
             }
-            
-//            if spot.animalTypeName != "butterfly" {
-//                if distance < 0.6 {
-//                    if !spot.isLockedNear {
-//                        spot.isLockedNear = true
-//                        manager.triggerFeedback(message: nil, tone: .negative, haptic: .warning, sound: .negativeBuzz)
-//                    }
-//                } else {
-//                    spot.isLockedNear = false
-//                }
-//                continue
-//            }
-            
+
+            if spot.animalTypeName != "butterfly" {
+                let isButterflyActive = manager.spots.first(where: { $0.animalTypeName == "butterfly" })?.isNear ?? false
+                if distance < 0.6 && !isButterflyActive {
+                    if !spot.isLockedNear {
+                        spot.isLockedNear = true
+                        manager.triggerFeedback(message: nil, tone: .negative, haptic: .warning, sound: .negativeBuzz)
+                    }
+                } else {
+                    spot.isLockedNear = false
+                }
+                continue
+            }
+
             let radiusThreshold: Float = spot.isNear ? 1.5 : 0.6
             
             if distance < radiusThreshold {
@@ -67,11 +68,6 @@ class ArenaController {
                         
                         manager.habitatController.animateCircleScale(for: spot, to: 1.0)
                         
-//                        if spot.animalTypeName != "butterfly", let animalModel = spot.animalModel {
-//                            var grownTransform = animalModel.transform
-//                            grownTransform.scale = spot.baseScale * 1.15
-//                            animalModel.move(to: grownTransform, relativeTo: animalModel.parent, duration: 0.4, timingFunction: .easeInOut)
-//                        }
                         
                         if spot.animalTypeName == "butterfly" {
                             if let existing = spot.animalModel {

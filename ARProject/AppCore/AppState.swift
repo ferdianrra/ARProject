@@ -12,3 +12,6 @@ class AppState {
 enum ActiveButton {
     case faseHidup, habitat, kasihMakan
 }
+
+
+

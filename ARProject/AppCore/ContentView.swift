@@ -79,7 +79,7 @@ struct ContentView : View {
                         Rectangle()
                             .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round, dash: [5, 5]))
                             .foregroundColor(.orange.opacity(0.8))
-                            .frame(width: 150, height: 150)
+                            .frame(width: 250, height: 250)
                         
                         VStack {
                             HStack {
@@ -94,9 +94,9 @@ struct ContentView : View {
                                 CircleGuideView()
                             }
                         }
-                        .frame(width: 170, height: 170)
+                        .frame(width: 270, height: 270)
                     }
-                    .frame(width: 180, height: 180)
+                    .frame(width: 280, height: 280)
                     
                     Text("Tap screen to place the area")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -136,11 +136,11 @@ struct ContentView : View {
                     .transition(.opacity)
                     .zIndex(1)
             } else if manager.isPlaced && !manager.isFeedingActive {
-                if manager.isLockedNearActive {
+                if manager.isLockedNearActive && !manager.spots.contains(where: { $0.isNear }) {
                     VStack(spacing: 12) {
                         InformationContainer(
                             message: "Coming soon! New habitat unlocking in future updates.",
-                            isWarning: false,
+                            isWarning: true,
                             showButton: false,
                             alignment: .top
                         )
@@ -148,7 +148,7 @@ struct ContentView : View {
                     .padding(.top, 48)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .transition(.opacity)
-                    .animation(.easeInOut, value: manager.isLockedNearActive)
+                    .animation(.easeInOut, value: manager.isLockedNearActive && !manager.spots.contains(where: { $0.isNear }))
                     .zIndex(2)
                 } else if manager.isTooFar {
                     VStack(spacing: 12) {

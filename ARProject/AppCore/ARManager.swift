@@ -5,7 +5,7 @@ import Combine
 
 
 class ARManager: NSObject, ObservableObject {
-    @Published var distanceText: String = "Find me!stop"
+    @Published var distanceText: String = "Find me!stop "
     @Published var currentAnimalName: String = ""
     @Published var isCoaching: Bool = true
     @Published var isTooFar: Bool = true
@@ -71,10 +71,10 @@ class ARManager: NSObject, ObservableObject {
     let headGestureController = HeadGestureController()
     
     var spots: [ARSpot] = [
-        ARSpot(id: 0, center: [-0.6, 0.05, -0.6]),
-        ARSpot(id: 1, center: [ 0.6, 0.05, -0.6]),
-        ARSpot(id: 2, center: [-0.6, 0.05,  0.6]),
-        ARSpot(id: 3, center: [ 0.6, 0.05,  0.6])
+        ARSpot(id: 0, center: [-1.1, 0.05, -1.1]),
+        ARSpot(id: 1, center: [ 1.1, 0.05, -1.1]),
+        ARSpot(id: 2, center: [-1.1, 0.05,  1.1]),
+        ARSpot(id: 3, center: [ 1.1, 0.05,  1.1])
     ]
     
     var parentContainer = Entity()
