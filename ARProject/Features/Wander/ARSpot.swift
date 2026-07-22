@@ -22,6 +22,7 @@ class ARSpot {
     var audioName: String
     
     var groundOffset: Float = 0
+    var baseScale: SIMD3<Float> = .one
     
     init(id: Int, center: SIMD3<Float>, animalModel: ModelEntity? = nil, audioName: String = "") {
         self.id = id

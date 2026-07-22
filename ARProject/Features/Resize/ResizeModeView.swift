@@ -5,6 +5,10 @@ struct ResizeModeView: View {
     @ObservedObject var manager: ARManager
     @State private var scale: Float = 1.0
     
+    private var currentAnimalTypeName: String {
+            manager.spots.first(where: { $0.isNear })?.animalTypeName ?? "butterfly"
+        }
+    
     var body: some View {
         HStack(spacing: 20) {
             Button(action: { currentState = .mainButtons }) {
@@ -45,7 +49,7 @@ struct ResizeModeView: View {
                     // Calculate percentage based on thumb position
                     let newPercentage = min(max(value.location.x / sliderWidth, 0), 1)
                     scale = Float(newPercentage) * 1.5 + 0.5
-                    manager.resizeController.setScale(scale, on: manager.animalEntity)
+                    manager.resizeController.setScale(scale, on: manager.animalEntity, animalTypeName: currentAnimalTypeName)
                 })
             }
             .frame(height: 30)
@@ -59,7 +63,7 @@ struct ResizeModeView: View {
         .onAppear {
             manager.resizeController.enterResizeMode(manager: manager)
             // Re-apply current slider scale to the new spawned model
-            manager.resizeController.setScale(scale, on: manager.animalEntity)
+            manager.resizeController.setScale(scale, on: manager.animalEntity, animalTypeName: currentAnimalTypeName)
         }
         .onDisappear {
             manager.resizeController.exitResizeMode(manager: manager)

@@ -79,6 +79,8 @@ class WanderController {
         targetTransform.rotation = targetRotation
         
         butterfly.move(to: targetTransform, relativeTo: anchor, duration: 3.5, timingFunction: .easeInOut)
+        
+        spot.spatialAudioEntity?.position = targetPositionLocal
     }
     
     func stopWandering(at spot: ARSpot, yHeight: Float) {
