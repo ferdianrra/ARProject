@@ -40,7 +40,7 @@ struct ARViewContainer: UIViewRepresentable {
         arView.session.run(config)
         
 //        arView.environment.sceneUnderstanding.options.insert([.occlusion, .receivesLighting])
-        arView.environment.sceneUnderstanding.options.insert([.receivesLighting])
+        arView.environment.sceneUnderstanding.options.insert([.receivesLighting, .physics])
         
 
         
