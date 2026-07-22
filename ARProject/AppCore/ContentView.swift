@@ -49,14 +49,30 @@ struct ContentView : View {
                         }
                     }
             )
-            .onTapGesture {
-                if !manager.isPlaced && !manager.isCoaching {
-                    manager.handleTap()
-                }
-            }
+            // OLD — onTapGesture has no location, so PlacementController had to use
+            // camera math (forward vector projection) instead of a real raycast.
+            // .onTapGesture {
+            //     if !manager.isPlaced && !manager.isCoaching {
+            //         manager.handleTap()   // no screen location = math-based, not best practice
+            //     }
+            // }
+
+            // BEST PRACTICE — DragGesture(minimumDistance: 0) fires instantly on any touch
+            // and provides value.startLocation: the exact CGPoint where the finger landed.
+            // This is passed to handleTap(at:) → PlacementController → arView.raycast(from: point)
+            // so placement only succeeds when the tap actually hits a real ARKit floor plane.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onEnded { value in
+                        if !manager.isPlaced && !manager.isCoaching {
+                            manager.handleTap(at: value.startLocation)
+                        }
+                    }
+            )
             .edgesIgnoringSafeArea(.all)
             
-            if !manager.isPlaced && !manager.isCoaching {
+            // 4 portals + label: only shown when camera is actively targeting a valid floor
+            if !manager.isPlaced && !manager.isCoaching && manager.isFloorTargeted {
                 VStack {
                     Spacer()
                     ZStack {
@@ -91,6 +107,24 @@ struct ContentView : View {
                         .cornerRadius(20)
                         .padding(.top, 30)
                     
+                    Spacer()
+                }
+                .transition(.opacity)
+                .zIndex(5)
+            }
+            
+            // Guidance label: shown after coaching but before floor is targeted
+            // Tells user to point camera at the floor instead of letting them tap blindly
+            if !manager.isPlaced && !manager.isCoaching && !manager.isFloorTargeted {
+                VStack {
+                    Spacer()
+                    Text("Point camera at the floor")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color.black.opacity(0.65))
+                        .cornerRadius(20)
                     Spacer()
                 }
                 .transition(.opacity)
