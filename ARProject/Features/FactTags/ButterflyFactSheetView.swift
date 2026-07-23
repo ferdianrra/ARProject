@@ -129,51 +129,40 @@ struct ButterflyFactSheetView: View {
                             .foregroundColor(.secondary)
                         
                         VStack(spacing: 10) {
-                            // Smile Option
-                            Button(action: {
-                                onDecision(.accepted)
-                            }) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "face.smiling.fill")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(.yellow)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Smile")
-                                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                                            .foregroundColor(.primary)
-                                        Text("Accept friendship")
-                                            .font(.system(size: 13, weight: .regular, design: .rounded))
-                                            .foregroundColor(.secondary)
-                                    }
-                                    Spacer()
+                            // Smile Option (Static Cue)
+                            HStack(spacing: 12) {
+                                Image(systemName: "face.smiling.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.yellow)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Smile")
+                                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                                        .foregroundColor(.primary)
+                                    Text("Accept friendship")
+                                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                                        .foregroundColor(.secondary)
                                 }
-                                .padding(12)
-                                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+                                Spacer()
                             }
-                            .buttonStyle(.plain)
+                            .padding(12)
+                            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
                             
-                            // Frown Option
-                            Button(action: {
-                                onDecision(.rejected)
-                            }) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "face.dashed")
-                                        .font(.system(size: 24))
-                                        .foregroundColor(.red)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Frown / Scrunch Nose")
-                                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                                            .foregroundColor(.primary)
-                                        Text("Decline friendship")
-                                            .font(.system(size: 13, weight: .regular, design: .rounded))
-                                            .foregroundColor(.secondary)
-                                    }
-                                    Spacer()
+                            // Frown Option (Static Cue)
+                            HStack(spacing: 12) {
+                                Image(systemName: "face.dashed")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.red)
+                                VStack(alignment: .leading, spacing: 2) { 
+                                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                                        .foregroundColor(.primary)
+                                    Text("Decline friendship")
+                                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                                        .foregroundColor(.secondary)
                                 }
-                                .padding(12)
-                                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+                                Spacer()
                             }
-                            .buttonStyle(.plain)
+                            .padding(12)
+                            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
                         }
                     }
                 }
