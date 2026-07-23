@@ -245,6 +245,7 @@ class FeedingController {
         if isGrabbing && !wasGrabbing {
             if let targetFood = closestFoodToGrab {
                 draggedFoodEntity = targetFood
+                manager.feedingOverlayState = .grabbing
                 if let cursor = cursorEntity {
                     let worldTransform = targetFood.transformMatrix(relativeTo: nil)
                     targetFood.setParent(cursor)
@@ -290,6 +291,7 @@ class FeedingController {
                         eatingStartedAt = Date()
                         audioPlayer?.currentTime = 0
                         audioPlayer?.play()
+                        manager.feedingOverlayState = .feeding
                     } else if let start = eatingStartedAt, Date().timeIntervalSince(start) > 3.0 {
                         // Success! Eaten after 3 seconds
                         draggedFood.removeFromParent()
@@ -299,6 +301,7 @@ class FeedingController {
                         self.draggedFoodEntity = nil
                         eatingStartedAt = nil
                         audioPlayer?.stop()
+                        manager.feedingOverlayState = .reaching
                         
                         let animalName = manager.spots.first(where: { $0.isNear })?.animalTypeName ?? "animal"
                         let foodName = draggedFood.name
@@ -320,6 +323,9 @@ class FeedingController {
                 } else {
                     audioPlayer?.stop()
                     eatingStartedAt = nil
+                    if draggedFoodEntity != nil {
+                        manager.feedingOverlayState = .grabbing
+                    }
                 }
             }
         }
@@ -362,6 +368,7 @@ class FeedingController {
     }
     
     private func dropGrabbedFood(manager: ARManager, showFeedback: Bool = true) {
+        manager.feedingOverlayState = .reaching
         if let draggedFood = draggedFoodEntity {
             draggedFood.removeFromParent()
             if let index = foodEntities.firstIndex(of: draggedFood) {

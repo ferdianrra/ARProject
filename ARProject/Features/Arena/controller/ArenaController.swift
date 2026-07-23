@@ -127,6 +127,7 @@ class ArenaController {
             } else {
                 if spot.isNear {
                     spot.isNear = false
+                    manager.isCallingAnimal = false
                     manager.wanderController.stopWandering(at: spot, yHeight: manager.heightOffset(for: spot))
                     manager.habitatController.animateCircleScale(for: spot, to: 0.25)
                     if spot.animalTypeName == "butterfly" {

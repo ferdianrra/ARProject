@@ -18,11 +18,17 @@ class CallAnimalController {
     /// meantime, so repeat calls don't stack up multiple pending resumes.
     private let idleBeforeResumingWander: TimeInterval = 8.0
     private var pendingWanderResume: DispatchWorkItem?
+    private var pendingCallingReset: DispatchWorkItem?
 
     func callAnimal(manager: ARManager) {
         guard let spot = manager.spots.first(where: { $0.isNear }),
               let animal = spot.animalModel,
-              let camera = manager.cameraAnchor else { return }
+              let camera = manager.cameraAnchor else {
+            DispatchQueue.main.async {
+                manager.isCallingAnimal = false
+            }
+            return
+        }
 
         pendingWanderResume?.cancel()
         spot.wanderTimer?.invalidate()
@@ -57,12 +63,25 @@ class CallAnimalController {
         let distance = simd_length(SIMD2<Float>(delta.x, delta.z))
 
         guard distance > 0.05 else {
+            DispatchQueue.main.async {
+                manager.isCallingAnimal = false
+            }
             scheduleWanderResume(manager: manager, spot: spot)
             return
         }
 
         let speed: Float = 0.5 // m/s
         let duration = Double(min(max(distance / speed, 0.6), 3.0))
+
+        pendingCallingReset?.cancel()
+        DispatchQueue.main.async {
+            manager.isCallingAnimal = true
+        }
+        let resetItem = DispatchWorkItem { [weak manager] in
+            manager?.isCallingAnimal = false
+        }
+        pendingCallingReset = resetItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: resetItem)
 
         // Face the camera at the destination, not the direction of travel —
         // a called animal should end up looking at whoever called it,

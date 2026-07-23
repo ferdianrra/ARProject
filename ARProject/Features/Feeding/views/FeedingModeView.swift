@@ -47,12 +47,18 @@ struct FeedingModeView: View {
         }
     }
     
+    private var currentAnimalTypeName: String {
+        manager.spots.first(where: { $0.isNear })?.animalTypeName ?? "animal"
+    }
+    
     private var messageText: String {
         switch manager.feedingOverlayState {
         case .reaching:
             return "Pinch and drag the food!"
+        case .grabbing:
+            return "Feed it to the \(currentAnimalTypeName)!"
         case .feeding:
-            return "Butterfly is eating!"
+            return "The \(currentAnimalTypeName) is eating!"
         }
     }
     
@@ -60,6 +66,8 @@ struct FeedingModeView: View {
         switch manager.feedingOverlayState {
         case .reaching:
             return .orange
+        case .grabbing:
+            return .green
         case .feeding:
             return .green
         }
