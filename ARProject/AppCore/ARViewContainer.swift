@@ -94,6 +94,10 @@ struct ARViewContainer: UIViewRepresentable {
         }()
         private let handCurlCallController = HandCurlCallController()
         private let callAnimalController = CallAnimalController()
+        
+        // Feeding Gesture State
+        private var isCurrentlyPinched = false
+        private var framesSincePinchLost = 0
 
         init(manager: ARManager) {
             self.manager = manager
@@ -134,11 +138,60 @@ struct ARViewContainer: UIViewRepresentable {
             guard let results = request.results as? [VNHumanHandPoseObservation], let hand = results.first else { return }
 
             let shouldCallAnimal = handCurlCallController.update(hand: hand)
-            guard shouldCallAnimal else { return }
+            
+            var normalizedPinchMidpoint: CGPoint?
+            var currentPinchState = false
+            
+            if let thumbTip = try? hand.recognizedPoint(.thumbTip),
+               let indexTip = try? hand.recognizedPoint(.indexTip),
+               let wrist = try? hand.recognizedPoint(.wrist),
+               let middleBase = try? hand.recognizedPoint(.middleMCP),
+               thumbTip.confidence > 0.5, indexTip.confidence > 0.5,
+               wrist.confidence > 0.5, middleBase.confidence > 0.5 {
+                
+                let handLength = hypot(wrist.location.x - middleBase.location.x,
+                                       wrist.location.y - middleBase.location.y)
+                let pinchDistance = hypot(thumbTip.location.x - indexTip.location.x,
+                                          thumbTip.location.y - indexTip.location.y)
+                let relativeDistance = pinchDistance / max(handLength, 0.01)
+                
+                if !isCurrentlyPinched && relativeDistance < 0.35 {
+                    isCurrentlyPinched = true
+                    framesSincePinchLost = 0
+                } else if isCurrentlyPinched && relativeDistance > 0.85 {
+                    framesSincePinchLost += 1
+                    if framesSincePinchLost > 20 {
+                        isCurrentlyPinched = false
+                    }
+                } else if isCurrentlyPinched && relativeDistance <= 0.85 {
+                    framesSincePinchLost = 0
+                }
+                
+                normalizedPinchMidpoint = CGPoint(
+                    x: (wrist.location.x + middleBase.location.x) / 2.0,
+                    y: (wrist.location.y + middleBase.location.y) / 2.0
+                )
+            } else {
+                if isCurrentlyPinched {
+                    framesSincePinchLost += 1
+                    if framesSincePinchLost > 20 {
+                        isCurrentlyPinched = false
+                    }
+                }
+            }
+            
+            currentPinchState = isCurrentlyPinched
 
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.manager.spots.contains(where: { $0.isNear }) else { return }
-                self.callAnimalController.callAnimal(manager: self.manager)
+                
+                if shouldCallAnimal {
+                    self.callAnimalController.callAnimal(manager: self.manager)
+                }
+                
+                if self.manager.isFeedingActive {
+                    self.manager.feedingController.update(manager: self.manager, isGrabbing: currentPinchState, normalizedPinchMidpoint: normalizedPinchMidpoint)
+                }
             }
         }
 

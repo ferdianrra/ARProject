@@ -18,7 +18,7 @@ class ArenaController {
                 manager.stopFeedingMode()
                 return
             }
-            manager.updateFeedingIfNeeded()
+            manager.feedingController.update(manager: manager)
         }
         
         let cameraPosition = camAnchor.position(relativeTo: nil)

@@ -38,7 +38,7 @@ struct DynamicPanelView: View {
                     LifeCycleModeView(currentState: $currentState, manager: manager)
                     
                 case .feedingMode:
-                    LifeCycleModeView(currentState: $currentState, manager: manager)
+                    FeedingModeView(currentState: $currentState, manager: manager)
                 }
             }
             .padding(.horizontal, 20)

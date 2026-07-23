@@ -42,6 +42,9 @@ class WanderController {
     func startWandering(_ butterfly: Entity, at spot: ARSpot, anchor: Entity, yHeight: Float) {
         guard spot.animalTypeName == "butterfly" else { return }
         
+        // Prevent timer leaks! If startWandering is called twice, the first timer MUST be stopped!
+        spot.wanderTimer?.invalidate()
+        
         playAllAnimationsRecursive(butterfly)
         moveToNewRandomPoint(butterfly, at: spot, anchor: anchor, yHeight: yHeight)
         
@@ -78,14 +81,24 @@ class WanderController {
         targetTransform.translation = targetPositionLocal
         targetTransform.rotation = targetRotation
         
-        butterfly.move(to: targetTransform, relativeTo: anchor, duration: 3.5, timingFunction: .easeInOut)
+        spot.movePlaybackController = butterfly.move(to: targetTransform, relativeTo: anchor, duration: 3.5, timingFunction: .easeInOut)
         
         spot.spatialAudioEntity?.position = targetPositionLocal
     }
     
-    func stopWandering(at spot: ARSpot, yHeight: Float) {
+    func pauseWandering(at spot: ARSpot) {
         spot.wanderTimer?.invalidate()
         spot.wanderTimer = nil
+        spot.movePlaybackController?.stop()
+        spot.movePlaybackController = nil
+    }
+    
+    func resumeWandering(butterfly: Entity, at spot: ARSpot, anchor: Entity, yHeight: Float) {
+        startWandering(butterfly, at: spot, anchor: anchor, yHeight: yHeight)
+    }
+    
+    func stopWandering(at spot: ARSpot, yHeight: Float) {
+        pauseWandering(at: spot)
         
         if let active = spot.animalModel {
             stopAllAnimationsRecursive(active)
