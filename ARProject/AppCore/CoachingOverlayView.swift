@@ -10,7 +10,8 @@ struct CoachingOverlayView: View {
     
     var body: some View {
         VStack(spacing: 30) {
-            Text("Find a flat surface!")
+//            Text("Find a flat surface!")
+            Text("Look down at the floor!")
                 .font(.system(size: 32, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)

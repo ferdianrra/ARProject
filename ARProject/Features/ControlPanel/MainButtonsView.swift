@@ -4,6 +4,7 @@ struct MainButtonsView: View {
     @Binding var currentState: PanelState
     @ObservedObject var manager: ARManager
     @State private var showFeedingComingSoon: Bool = false
+    @State private var showLifecycleComingSoon: Bool = false
     
     var body: some View {
         HStack(spacing: 15) {
@@ -11,7 +12,19 @@ struct MainButtonsView: View {
                 title: "Life Cycle",
                 imageName: "LifeCycle",
                 buttonColor: Color(red: 0.88, green: 0.96, blue: 0.98),
-                action: { currentState = .lifeCycleMode }
+                action: {
+                    let activeAnimalType = manager.spots.first(where: { $0.isNear })?.animalTypeName ?? ""
+                    if activeAnimalType == "butterfly" {
+                        // Butterfly: use the existing lifecycle flow
+                        currentState = .lifeCycleMode
+                    } else {
+                        // Other animals: show Coming Soon warning
+                        withAnimation(.easeInOut) { showLifecycleComingSoon = true }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                            withAnimation(.easeInOut) { showLifecycleComingSoon = false }
+                        }
+                    }
+                }
             )
             MainButton(
                 title: "Feeding",
@@ -63,6 +76,16 @@ struct MainButtonsView: View {
             if showFeedingComingSoon {
                 InformationContainer(
                     message: "Coming soon! Feeding is currently only available for the Butterfly.",
+                    isWarning: true,
+                    showButton: false,
+                    alignment: .top
+                )
+                .offset(y: -130)
+                .transition(.opacity)
+            }
+            if showLifecycleComingSoon {
+                InformationContainer(
+                    message: "Coming soon! Life Cycle is currently only available for the Butterfly.",
                     isWarning: true,
                     showButton: false,
                     alignment: .top
