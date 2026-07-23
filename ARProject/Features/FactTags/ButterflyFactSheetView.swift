@@ -152,7 +152,8 @@ struct ButterflyFactSheetView: View {
                                 Image(systemName: "face.dashed")
                                     .font(.system(size: 24))
                                     .foregroundColor(.red)
-                                VStack(alignment: .leading, spacing: 2) { 
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Frown / Scrunch Nose")
                                         .font(.system(size: 15, weight: .bold, design: .rounded))
                                         .foregroundColor(.primary)
                                     Text("Decline friendship")
