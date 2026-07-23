@@ -264,6 +264,11 @@ struct ContentView : View {
     }
 
     private func topInstructionText(for state: PanelState) -> String {
+        if manager.isCallingAnimal && state != .feedingMode {
+            let typeName = manager.spots.first(where: { $0.isNear })?.animalTypeName ?? "animal"
+            return "The \(typeName) is following you!"
+        }
+        
         switch state {
         case .lifeCycleMode:
             return "Slide the bar to see animal phases! The animal is in the center of the habitat."

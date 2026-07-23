@@ -26,6 +26,7 @@ class ARManager: NSObject, ObservableObject {
     @Published var isFirstDiscoveryFact: Bool = false
     @Published var currentFactSpot: ARSpot? = nil
     @Published var currentLifeCyclePhase: Int = 1
+    @Published var isCallingAnimal: Bool = false
 
     
     var subscriptions: [AnyCancellable] = [] 
@@ -159,6 +160,7 @@ class ARManager: NSObject, ObservableObject {
     func resetPlacement() {
         auraTimer?.invalidate()
         auraTimer = nil
+        isCallingAnimal = false
         
         for spot in spots {
             spot.wanderTimer?.invalidate()

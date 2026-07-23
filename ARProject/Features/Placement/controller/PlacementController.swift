@@ -44,12 +44,26 @@ final class PlacementController {
         let t = (planeHeight - camPos.y) / forward.y
         guard t > 0 else { return }
         
-        let intersectionWorld = camPos + t * forward
+        var intersectionWorld = camPos + t * forward
 
         // ADDED: Reject taps whose intersection point is more than 2.5 m away.
         // This prevents placement in mid-air or far-away locations.
         let distanceFromCamera = length(intersectionWorld - camPos)
         guard distanceFromCamera <= 2.5 else { return }
+
+        // Enforce a minimum distance of 1.8 meters from the camera to prevent immediate activation/growth
+        let camFlat = SIMD2<Float>(camPos.x, camPos.z)
+        let worldFlat = SIMD2<Float>(intersectionWorld.x, intersectionWorld.z)
+        let distance = simd_distance(camFlat, worldFlat)
+        if distance < 1.8 {
+            let right3D = camAnchor.orientation(relativeTo: nil).act(SIMD3<Float>(1, 0, 0))
+            let flatForward3D = normalize(cross(SIMD3<Float>(0, 1, 0), SIMD3<Float>(right3D.x, 0, right3D.z)))
+            let flatForward = SIMD2<Float>(flatForward3D.x, flatForward3D.z)
+            
+            let newFlatPos = camFlat + flatForward * 1.8
+            intersectionWorld.x = newFlatPos.x
+            intersectionWorld.z = newFlatPos.y
+        }
 
         let localPos = anchor.convert(position: intersectionWorld, from: nil)
         manager.parentContainer.position = [localPos.x, 0, localPos.z]
@@ -85,11 +99,29 @@ final class PlacementController {
         guard let first = results.first else { return }
 
         // Extract the world-space position where the ray hit the floor plane.
-        let worldPos = SIMD3<Float>(
+        var worldPos = SIMD3<Float>(
             first.worldTransform.columns.3.x,
             first.worldTransform.columns.3.y,
             first.worldTransform.columns.3.z
         )
+
+        // Enforce a minimum distance of 1.8 meters from the camera to prevent immediate activation/growth
+        if let camAnchor = manager.cameraAnchor {
+            let cameraPos = camAnchor.position(relativeTo: nil)
+            let camFlat = SIMD2<Float>(cameraPos.x, cameraPos.z)
+            let worldFlat = SIMD2<Float>(worldPos.x, worldPos.z)
+            
+            let distance = simd_distance(camFlat, worldFlat)
+            if distance < 1.8 {
+                let right3D = camAnchor.orientation(relativeTo: nil).act(SIMD3<Float>(1, 0, 0))
+                let flatForward3D = normalize(cross(SIMD3<Float>(0, 1, 0), SIMD3<Float>(right3D.x, 0, right3D.z)))
+                let flatForward = SIMD2<Float>(flatForward3D.x, flatForward3D.z)
+                
+                let newFlatPos = camFlat + flatForward * 1.8
+                worldPos.x = newFlatPos.x
+                worldPos.z = newFlatPos.y
+            }
+        }
 
         // Convert to anchor-local space and place container at that XZ position.
         let localPos = anchor.convert(position: worldPos, from: nil)
