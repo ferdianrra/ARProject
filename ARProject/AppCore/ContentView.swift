@@ -134,65 +134,69 @@ struct ContentView : View {
             if manager.isCoaching {
                 CoachingOverlayView()
                     .transition(.opacity)
-                    .zIndex(1)
-            } else if manager.isPlaced && !manager.isFeedingActive {
-                if manager.isLockedNearActive && !manager.spots.contains(where: { $0.isNear }) {
-                    VStack(spacing: 12) {
+            }
+            
+            // Top HUD Overlay: Groups top instructions and feedback toasts in a single vertical stack to prevent overlap/collisions!
+            VStack(spacing: 12) {
+                // 1. Top Instructions
+                if manager.isPlaced && !manager.isCoaching {
+                    if manager.isLockedNearActive && !manager.spots.contains(where: { $0.isNear }) {
                         InformationContainer(
                             message: "Coming soon! New habitat unlocking in future updates.",
                             isWarning: true,
                             showButton: false,
                             alignment: .top
                         )
-                    }
-                    .padding(.top, 48)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .transition(.opacity)
-                    .animation(.easeInOut, value: manager.isLockedNearActive && !manager.spots.contains(where: { $0.isNear }))
-                    .zIndex(2)
-                } else if manager.isTooFar {
-                    VStack(spacing: 12) {
+                        .transition(.opacity)
+                    } else if manager.isTooFar {
                         InformationContainer(
                             message: "Get closer to play!",
                             isWarning: true,
                             showButton: false,
                             alignment: .top
                         )
+                        .transition(.opacity)
+                    } else {
+                        VStack(spacing: 12) {
+                            InformationContainer(
+                                message: topInstructionText(for: panelState),
+                                isWarning: false,
+                                showButton: false,
+                                alignment: .top
+                            )
+                            
+                            if panelState == .lifeCycleMode {
+                                Text(lifeCyclePhaseMessage(for: manager.currentLifeCyclePhase))
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color(red: 0.15, green: 0.70, blue: 0.35), in: Capsule())
+                                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                                    .transition(.move(edge: .top).combined(with: .opacity))
+                                    .animation(.spring(), value: manager.currentLifeCyclePhase)
+                            }
+                        }
+                        .transition(.opacity)
                     }
-                    .padding(.top, 48)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .transition(.opacity)
-                    .animation(.easeInOut, value: manager.isTooFar)
-                    .zIndex(2)
-                } else {
-                    VStack(spacing: 12) {
-                        InformationContainer(
-                            message: topInstructionText(for: panelState),
-                            isWarning: false,
-                            showButton: false,
-                            alignment: .top
-                        )
-                        
-                        if panelState == .lifeCycleMode {
-                            Text(lifeCyclePhaseMessage(for: manager.currentLifeCyclePhase))
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Color(red: 0.15, green: 0.70, blue: 0.35), in: Capsule())
-                                .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                                .animation(.spring(), value: manager.currentLifeCyclePhase)
+                }
+                
+                // 2. Feedback Toast (Appears right below instructions without overlapping!)
+                if let event = manager.feedbackEvent, event.message != nil {
+                    FeedbackToastView(event: event) {
+                        withAnimation {
+                            manager.feedbackEvent = nil
                         }
                     }
-                    .padding(.top, 48)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .animation(.easeInOut(duration: 0.3), value: panelState)
-                    .transition(.opacity)
-                    .animation(.easeInOut, value: manager.isTooFar)
-                    .zIndex(2)
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
+            .padding(.top, 48)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .animation(.easeInOut(duration: 0.3), value: manager.isTooFar)
+            .animation(.easeInOut(duration: 0.3), value: manager.isLockedNearActive)
+            .animation(.easeInOut(duration: 0.3), value: manager.feedbackEvent)
+            .zIndex(10)
             
             if !manager.isCoaching && manager.isPlaced && !manager.isTooFar {
                 DynamicPanelView(currentState: $panelState, manager: manager)
@@ -255,18 +259,7 @@ struct ContentView : View {
                 .transition(.opacity)
             }
 
-            if let event = manager.feedbackEvent, event.message != nil {
-                VStack {
-                    FeedbackToastView(event: event) {
-                        withAnimation {
-                            manager.feedbackEvent = nil
-                        }
-                    }
-                    .padding(.top, 50)
-                    Spacer()
-                }
-                .zIndex(10)
-            }
+
         }
     }
 
@@ -277,7 +270,15 @@ struct ContentView : View {
         case .resizeMode:
             return "Drag slider to adjust animal size!"
         case .feedingMode:
-            return "Hold out your hand to feed the butterfly!"
+            let typeName = manager.spots.first(where: { $0.isNear })?.animalTypeName ?? "animal"
+            switch manager.feedingOverlayState {
+            case .reaching:
+                return "Pinch and drag the food!"
+            case .grabbing:
+                return "Feed it to the \(typeName)!"
+            case .feeding:
+                return "The \(typeName) is eating!"
+            }
         default:
             return "Explore the animal! Walk out of the arena to exit."
         }

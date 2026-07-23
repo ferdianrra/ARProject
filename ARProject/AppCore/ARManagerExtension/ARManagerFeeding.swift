@@ -7,6 +7,7 @@ import SwiftUI
 
 enum FeedingOverlayState {
     case reaching
+    case grabbing
     case feeding
 }
 
