@@ -54,7 +54,7 @@ extension ARManager {
         
         let dir = SIMD3<Float>(spotWorldPos.x - cameraPos.x, 0, spotWorldPos.z - cameraPos.z)
         let len = length(dir)
-        let pushDistance: Float = 1.5
+        let pushDistance: Float = 1.0
         
         let pushDir: SIMD3<Float>
         if len > 0.01 {
